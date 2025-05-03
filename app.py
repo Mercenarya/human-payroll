@@ -321,10 +321,6 @@ def management():
         updateat = datetime.datetime.now() 
         
 
-        
-
-
-
         try:
             #MYSQL
             # Lệnh chèn dữ liệu vào mysql ở mục nhân viên 
@@ -678,7 +674,7 @@ def payroll():
         
         
 
-
+# hiển thị danh sách tài khoản ban quản trị - administrator
 @app.route('/rights',methods = ["GET","POST"])
 @arms_decorator_cors("administrator")
 def permission_rights():
@@ -705,7 +701,8 @@ def permission_rights():
         
     user = session.get("username")
     return render_template("rights&role.html",usr = user,account = accounts)
-        
+
+#Tìm kiếm tài khoản thuộc ban quản trị 
 @app.route('/rolesearch',methods = ['GET','POST'])
 @arms_decorator_cors("administrator")
 def accounts_search():
@@ -839,10 +836,11 @@ def edit_rights(id):
 @app.route("/delete/account<int:id>", methods = ["GET","POST"])
 @arms_decorator_cors('administrator')
 def delete_accounts(id):
+    message = ""
+    converted_cursor = conn_mysql.cursor(dictionary=True)
+    user = session.get("username")
     if request.method == "POST":
-        message = ""
-        converted_cursor = conn_mysql.cursor(dictionary=True)
-        user = session.get("username")
+       
         try:
             sql_sv_query = '''SELECT * FROM accounts WHERE user_id = ?'''
             sql_query = '''SELECT * FROM accounts WHERE user_id = %s'''
@@ -855,7 +853,7 @@ def delete_accounts(id):
 
             if not check_record_mysql and not check_record_server:
                 message = "This account is invalid"
-                return render_template("rights&role.htnl",msg=message,usr=user)
+                return render_template("rights&role.html",msg=message,usr=user)
             else:
                 del_mysql = '''DELETE FROM accounts WHERE user_id = %s'''
                 del_server = '''DELETE FROM accounts WHERE user_id = ?'''
@@ -867,14 +865,15 @@ def delete_accounts(id):
                 server_cursor.connection.commit()
 
                 message = "This Account has been Deleted"
-                
                 return render_template("rights&role.html",msg=message,usr=user)
             
-
         except Exception as error:
             return {
                 "error-message":f"{error}"
             },405
+        
+    return render_template("rights&role.html",msg=message,usr=user)
+            
         
 
        
