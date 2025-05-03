@@ -278,6 +278,8 @@ def user_session():
     }
     return jsonify(user)
 
+
+
     
 
 
@@ -830,11 +832,49 @@ def edit_rights(id):
     except Exception as error:
         return {
             "error-message":f"{error}"
-        }
+        },408
         
 
    
+@app.route("/delete/account<int:id>", methods = ["GET","POST"])
+@arms_decorator_cors('administrator')
+def delete_accounts(id):
+    if request.method == "POST":
+        message = ""
+        converted_cursor = conn_mysql.cursor(dictionary=True)
+        user = session.get("username")
+        try:
+            sql_sv_query = '''SELECT * FROM accounts WHERE user_id = ?'''
+            sql_query = '''SELECT * FROM accounts WHERE user_id = %s'''
+    
+            converted_cursor.execute(sql_query,[id])
+            check_record_mysql = converted_cursor.fetchone()
 
+            server_cursor.execute(sql_sv_query,(id,))
+            check_record_server = server_cursor.fetchone()
+
+            if not check_record_mysql and not check_record_server:
+                message = "This account is invalid"
+                return render_template("rights&role.htnl",msg=message,usr=user)
+            else:
+                del_mysql = '''DELETE FROM accounts WHERE user_id = %s'''
+                del_server = '''DELETE FROM accounts WHERE user_id = ?'''
+
+                converted_cursor.execute(del_mysql,[id])
+                server_cursor.execute(del_server,(id,))
+
+                conn_mysql.commit()
+                server_cursor.connection.commit()
+
+                message = "This Account has been Deleted"
+                
+                return render_template("rights&role.html",msg=message,usr=user)
+            
+
+        except Exception as error:
+            return {
+                "error-message":f"{error}"
+            },405
         
 
        
