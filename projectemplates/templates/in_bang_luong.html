@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Lương Nhân Viên</title>
+</head>
+<body>
+    <h2>Bảng Lương Nhân Viên</h2>
+    <table border="1">
+        <tr>
+            <th>Tên Nhân Viên</th>
+            <th>Tháng</th>
+            <th>Lương Cơ Bản</th>
+            <th>Phụ Cấp</th>
+            <th>Thưởng</th>
+            <th>Khấu Trừ</th>
+            <th>Lương Thực Nhận</th>
+        </tr>
+        {% for nv, luong in nhan_viens %}
+        <tr>
+            <td>{{ nv.HoTen }}</td>
+            <td>{{ luong.ThangNam }}</td>
+            <td>{{ luong.LuongCoBan }}</td>
+            <td>{{ luong.PhuCap }}</td>
+            <td>{{ luong.Thuong }}</td>
+            <td>{{ luong.KhauTru }}</td>
+            <td>{{ luong.LuongThucNhan }}</td>
+        </tr>
+        {% endfor %}
+
+    </table>
+    
+</body>
+</html>

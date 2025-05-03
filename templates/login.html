@@ -17,6 +17,10 @@
         <form method="post" action="{{ url_for('login') }}">
             <h1>Sign in</h1>
             <!-- Email input -->
+            <div class="msg" style="color: white; text-align: center;">
+              {{ msg }}
+            </div>
+
             <label class="form-label" for="username">Username</label>
             <input id="username" name="username" type="text" class="form-control" />
 

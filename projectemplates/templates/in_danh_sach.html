@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Danh Sách Nhân Viên</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h2>Danh Sách Nhân Viên</h2>
+
+    <table border="1">
+        <tr>
+            <th>Mã NV</th>
+            <th>Họ Tên</th>
+            <th>Ngày Sinh</th>
+            <th>Giới Tính</th>
+            <th>Địa Chỉ</th>
+            <th>Số Điện Thoại</th>
+            <th>Email</th>
+            <th>Ngày Vào Làm</th>
+            <th>Phòng Ban</th>
+            <th>Chức Vụ</th>
+            <th>Chức Năng</th>
+        </tr>
+        {% for nv in nhan_viens %}
+        <tr>
+            <td>{{ nv.MaNV }}</td>
+            <td>{{ nv.HoTen }}</td>
+            <td>{{ nv.NgaySinh }}</td>
+            <td>{{ nv.GioiTinh }}</td>
+            <td>{{ nv.DiaChi }}</td>
+            <td>{{ nv.SoDienThoai }}</td>
+            <td>{{ nv.Email }}</td>
+            <td>{{ nv.NgayVaoLam }}</td>
+            <td>{{ nv.PhongBan }}</td>
+            <td>{{ nv.ChucVu }}</td>
+            <td>
+                <a href="{{ url_for('cap_nhat_nhan_vien', manv=nv.MaNV) }}">Sửa </a> ||
+                <form action="{{ url_for('xoa_nhan_vien', manv=nv.MaNV) }}" method="POST"
+                onsubmit="return confirm('Bạn có chắc chắn muốn xóa?');">
+                <button type="submit">Xóa</button>
+                </form>
+            </td>
+
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+    <a href="/">Quay lại trang chủ</a>
+</body>
+</html>

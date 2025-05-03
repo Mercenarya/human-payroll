@@ -33,6 +33,9 @@
                                 <li>
                                     <a style="color: grey;" href="#"  class="nav-link px-0"> <span class="d-none d-sm-inline">Payroll</span> </a>
                                 </li>
+                                <li>
+                                    <a style="color: grey;" href="{{url_for('permission_rights')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Rights & Permission</span> </a>
+                                </li>
                             
                             </ul>
                         </li>
@@ -79,9 +82,9 @@
                     <div class="dropdown pb-4">
                         <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
                             <img src="https://github.com/mdo.png" alt="hugenerd" width="30" height="30" class="rounded-circle">
-                            <!-- <span class="d-none d-sm-inline mx-1" id="username-session">loser</span> -->
+                            <span class="d-none d-sm-inline mx-1" id="username-session">{{ usr }}</span>
                             <div class="username-sht" id="username-session">
-
+                                
                             </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
@@ -91,7 +94,7 @@
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li><a class="dropdown-item" id="sign-out-btn" href="#" onclick="logout()">Sign out</a></li>
+                            <li><a class="dropdown-item" id="sign-out-btn" href="{{url_for('logout')}}">Sign out</a></li>
                         </ul>
                     </div>
                 </div>

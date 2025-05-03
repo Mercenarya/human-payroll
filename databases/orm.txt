@@ -1,0 +1,110 @@
+# db = SQLAlchemy(app)
+# # Tạo Lớp cơ sở dữ liệu
+
+# app.config["ALCHEMY_BINDS"] = {
+#     "default":config.SQL_SERVER_CONN,
+#     # Kết nối SQL server
+#     "mysql": config.MYSQL_CONN
+#     # kết nối Mysql
+# }
+
+# class EmployeeDetailSQL(db.Model): # Lớp hồ sơ thông tin nv SQL server
+#     __tablename__ = "Employees"
+#     __bind_key__ = "default"
+#     EmpID = db.Column(db.Integer, primary_key= True, autoincrement=True)
+#     EmpName = db.Column(db.String(100), nullable=False)
+#     EmpBirth = db.Column(db.Date)
+#     EmpGender = db.Column(db.String(10))
+#     EmpPhone = db.Column(db.String(15))
+#     Email = db.Column(db.String(100))
+#     HireDate  = db.Column(db.Date)
+#     EmpStatus = db.Column(db.String(50))
+#     EmpDepartmentID = db.Column(db.Integer, primary_key=True)
+#     EmpPositionID = db.Column(db.Integer, primary_key=True)
+#     Createat = db.Column(db.Datetime)
+#     Updatedat = db.Column(db.Datetime)
+
+# # dữ liệu từ Mysql , dùng đển in ra thông tin liên quan lương nhân viên
+# class EmployeeDetailMySQL(db.Model): #Lớp hồ sơ nhân viên từ Mysql
+#     __tablename__ = "employees"
+#     __bind_key__ = "mysql"
+
+#     EmpID = db.Column(db.Integer, autoincrement=True)
+#     EmpName = db.Column(db.String(100), nullable=False)
+#     EmpDepartmentID = db.Column(db.Integer)
+#     EmpPositionID = db.Column(db.Integer)
+#     EmpStatus = db.Column(db.String(50))
+#     salaries = db.relationship("SalariesMySQL", backref="employee")
+#     attendances = db.relationship("AttendanceMySQL", backref="employee")
+
+# # Tạo các lớp phòng ban
+# class DepartmentSQL(db.Model): #Lớp phòng ban của SQL server
+#     __tablename__ = "Departments"
+#     __bind_key__ = "default"
+
+#     DepartmentID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     DepartmentName = db.Column(db.String(100), nullable=False)
+#     Createat = db.Column(db.Datetime)
+#     Updatedat = db.Column(db.Datetime)
+
+# class DepartmentMySQL(db.Model): # Lớp phòng ban của MySQL
+#     __tablename__ = "departments"
+#     __bind_key__ = "mysql"
+#     DepartmentID = db.Column(db.Integer, autoincrement=True)
+#     DepartmentName = db.Column(db.String(100), nullable=False)
+#     employees = db.relationship("EmployeeDetailMySQL", backref="department")
+
+# # Tạo các lớp vị trí - chức danh
+# class PositionSQL(db.Model): #lớp vị trí, chức danh SQL server
+#     __tablename__ = "Positions"
+#     __bind_key__ = "default"
+
+#     PositionID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     PositionName = db.Column(db.String(100), nullable = False)
+#     Createat = db.Column(db.Datetime)
+#     Updatedat = db.Column(db.Datetime)
+
+# class PositionMySQL(db.Model): #Lớp vị trí, chức danh MYSQL
+#     __tablename__ = "positions"
+#     __bind_key__ = "mysql"
+
+#     PositionID = db.Column(db.Integer, autoincrement=True)
+#     PositionName = db.Column(db.String(100), nullable = False)
+#     employees = db.relationship("EmployeeDetailMySQL", backref="position")
+
+# #Tạo lớp lương bổng
+# class SalariesMySQL(db.Model):
+#     __tablename__ = "salaries"
+#     __bind_key__ = "mysql"
+
+#     SSalaryID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     EmpID = db.Column("EmployeeID", db.Integer)
+#     salaryMonth = db.Column("SalaryMonth", db.Date, nullable=False)
+#     BaseSalary = db.Column(db.Numeric(12, 2), nullable=False)
+#     Bonus = db.Column(db.Numeric(12, 2), default=0.00)
+#     Deductions = db.Column(db.Numeric(12, 2), default=0.00)
+#     NetSalary = db.Column(db.Numeric(12, 2), nullable=False)
+#     Createdat = db.Column("CreatedAt", db.DateTime, default=db.func.current_timestamp())
+
+
+# # Mục Lớp điển danh
+# class AttendanceMySQL(db.Model): # Lớp điểm danh nhân viên
+#     __tablename__ = "attendance"
+#     __bind_key__ = "mysql"
+
+#     AttendanceID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     EmployeeID = db.Column(db.Integer)
+#     WorkDays = db.Column(db.Integer, nullable=False)
+#     AbsentDays = db.Column(db.Integer, default=0)
+#     LeaveDays = db.Column(db.Integer, default=0)
+#     AttendanceMonth = db.Column(db.Date, nullable=False)
+#     CreatedAt = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+# # Tạo lớp lợi nhuận cổ tức
+# class dividendsSQL(db.Model):
+#     __tablename__ = "Dividends"
+#     __bind_key__ = "default"
+#     DividensID = db.Column(db.Integer, primary_key = True, autoincrement=True)
+#     EmpID = db.Column(db.Integer, db.ForeignKey("Employees.EmployeeID"))
+#     DividendDate = db.Column(db.Date, nullable=False)
+#     Createdat = db.Column(db.Datetime)

@@ -104,11 +104,11 @@
                 <div class="mb-4" style="font-size: 40px;">Resources - Employee management & Payroll caculation</div>
                 <h3>Employee Profile</h3>
                 <h3 class="msg" style="color: rgb(116, 105, 105);">{{msg}}</h3>
-                <form id="emp-mng" action="{{url_for('management')}}" method="POST">
+                <form id="emp-mng" action="{{url_for('edit_employees',id= emp.EmployeeID )}}" method="POST">
                     <div class="manage">
                         <div class="mb-3">
                             <label class="form-label">Employee ID</label>
-                            <input name="employeeid" id="empid" class="form-control" placeholder="Nhập Employee ID">
+                            <input name="employeeid" id="empid" value="{{ emp.EmployeeID}}" class="form-control" placeholder="Nhập Employee ID">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">First Name</label>
@@ -213,7 +213,7 @@
                         </div>
                     
                     <div class="interact">
-                        <button  class="btn btn-primary" id="save-detail-btn">Adding Employee</button>
+                        <button  class="btn btn-primary" id="save-detail-btn">Save records</button>
                         <button  class="btn btn-primary" onclick="clear_data(event)" id="Delete-detail-btn">Clear Detail</button>
                     </div>
 
@@ -224,7 +224,6 @@
      
         
     </div>
-    
     <script lang="text/javascript" src="{{ url_for('static', filename = 'src/salary.js')}}"></script>
     
 </body>

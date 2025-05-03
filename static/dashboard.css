@@ -1,0 +1,6 @@
+.option-btn{
+    display: flex;
+}
+.option-btn button {
+    padding: auto;
+}

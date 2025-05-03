@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm Nhân Viên</title>
+</head>
+<body>
+    <h2>Thêm Nhân Viên</h2>
+    <form method="POST">
+        <label>Họ và Tên:</label>
+        <input type="text" name="ho_ten" required><br>
+        <label>Ngày Sinh:</label>
+        <input type="date" name="ngay_sinh"><br>
+        <label>Giới Tính:</label>
+
+        <select name="gioi_tinh">
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+        </select><br>
+        
+        <label>Địa Chỉ:</label>
+        <input type="text" name="dia_chi"><br>
+        <label>Số Điện Thoại:</label>
+        <input type="text" name="so_dien_thoai"><br>
+        <label>Email:</label>
+        <input type="email" name="email"><br>
+        <label>Ngày Vào Làm:</label>
+        <input type="date" name="ngay_vao_lam"><br>
+        <button type="submit">Thêm</button>
+    </form>
+</body>
+</html>

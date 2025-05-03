@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập Nhật Nhân Viên</title>
+</head>
+<body>
+    <h2>Cập Nhật Nhân Viên</h2>
+    
+    <form method="POST">
+        <label>Họ và Tên:</label>
+        <input type="text" name="ho_ten" value="{{ nv_sql.HoTen if nv_sql else nv_mysql.HoTen }}" required><br>
+        
+        <label>Ngày Sinh:</label>
+        <input type="date" name="ngay_sinh" value="{{ nv_sql.NgaySinh if nv_sql else nv_mysql.NgaySinh }}"><br>
+        
+        <label>Giới Tính:</label>
+        <select name="gioi_tinh">
+            <option value="Nam" {% if (nv_sql and nv_sql.GioiTinh == 'Nam') or (nv_mysql 
+                and nv_mysql.GioiTinh == 'Nam') %} selected {% endif %}>Nam</option>
+            <option value="Nữ" {% if (nv_sql and nv_sql.GioiTinh == 'Nữ') or (nv_mysql
+                and nv_mysql.GioiTinh == 'Nữ') %} selected {% endif %}>Nữ</option>
+        </select><br>
+
+        <label>Địa Chỉ:</label>
+        <input type="text" name="dia_chi" value="{{ nv_sql.DiaChi if nv_sql else ''
+        }}"><br>
+
+        <label>Số Điện Thoại:</label>
+        <input type="text" name="so_dien_thoai" value="{{ nv_sql.SoDienThoai if nv_sql
+        else nv_mysql.SoDienThoai }}"><br>
+
+        <label>Email:</label>
+        <input type="email" name="email" value="{{ nv_sql.Email if nv_sql else
+        nv_mysql.Email }}"><br>
+
+        <label>Ngày Vào Làm:</label>
+        <input type="date" name="ngay_vao_lam" value="{{ nv_sql.NgayVaoLam if nv_sql else
+        nv_mysql.NgayVaoLam }}"><br>
+
+        <label>Phòng Ban:</label>
+        <input type="text" name="phong_ban" value="{{ nv_mysql.PhongBan if nv_mysql else
+        nv_mysql.PhongBan }}"><br>
+
+        <label>ChucVu:</label>
+        <input type="text" name="chuc_vu" value="{{ nv_mysql.ChucVu if nv_mysql else
+        nv_mysql.ChucVu }}"><br>
+        <button type="submit">Cập Nhật</button>
+    </form>
+</body>
+</html>
