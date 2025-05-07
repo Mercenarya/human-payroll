@@ -31,10 +31,10 @@
                                     <a style="color: grey;" href="{{url_for('dashboard')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Human</span></a>
                                 </li>
                                 <li>
-                                    <a style="color: grey;" href="{{url_for('show_departments')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Departments</span> </a>
-                                </li>
-                                <li>
                                     <a style="color: grey;" href="#"  class="nav-link px-0"> <span class="d-none d-sm-inline">Payroll</span> </a>
+                                </li> 
+                                <li>
+                                    <a style="color: grey;" href="{{url_for('show_departments')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Departments</span> </a>
                                 </li>
                                 <li>
                                     <a style="color: grey;" href="{{url_for('permission_rights')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Rights & Permission</span> </a>
@@ -102,10 +102,9 @@
                 </div>
             </div>
             <div class="col py-3">
-                <h1>Dashboard - Human overview</h1>
-                <h3 class="msg" style="color: rgb(116, 105, 105);">{{msg}}</h3>
+                <h1>Dashboard - Permission and Rights overview</h1>
                 <div class="container mt-5">
-                    <form class="d-flex" method="POST" action="{{url_for('search')}}" role="search">
+                    <form class="d-flex" method="POST" action="{{url_for('accounts_search')}}" role="search">
                       <input class="form-control me-2" name="searchfield" type="search" style="border-color: grey;width:400px ;"
                       placeholder="Tìm kiếm..." aria-label="Search">
                       <button class="btn btn-outline-success" type="submit">Search</button>
@@ -115,18 +114,11 @@
                 <table class="table">
                     <thead>
                         <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Full Name</th>
-                        <th scope='col'>BirthDay</th>
-                        <th scope="col">Gender</th>
-                        <th scope="col">Phone</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Hire Date</th>
+                        <th scope="col">Department ID</th>
                         <th scope="col">Department</th>
-                        <th scope="col">Position</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Created</th>
-                        <th scope="col">Updated</th>
+                       
+        
+                        
 
 
 
@@ -134,34 +126,22 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for obj in human %}
+                        {% for obj in department %}
                         <tr>
-                                <td >{{ obj.EmployeeID }}</td>
-                                <td >{{ obj.FullName }}</td>
-                                <td >{{ obj.DateOfBirth }}</td>
-                                <td >{{ obj.Gender}}</td>
-                                <td >{{ obj.PhoneNumber }}</td>
-                                <td >{{ obj.Email }}</td>
-                                <td >{{ obj.HireDate }}</td>
-                                <td >{{ obj.department}}</td>
-                                <td >{{ obj.position }}</td>
-                                <td >{{ obj.Status }}</td>
-                                <td >{{ obj.CreatedAt }} </td>
-                                <td >{{ obj.UpdatedAt }} </td>
+                            <form method="POST" action="{{ url_for('show_departments') }}">
+                                <td >{{ obj.ID }}</td>
+                                <td >{{ obj.Department }}</td>
+       
                                 <td>
-                                    <div class="option-btn">
-                                        <button type="submit" class="btn btn-primary" id="save-detail-btn" onclick="">
-                                            <a style="text-decoration: none; color: white;"
-                                            href="{{url_for('edit_employees',id=obj.EmployeeID)}}">Edit</a>
+                                    <div class="custom-btn">
+                                        <button type="submit" class="btn btn-primary" id="save-detail-btn">
+                                            <a style="text-decoration: none; color: white;" href="">More</a>
                                         </button>
-                                        <button type="submit"  class="btn btn-primary" id="save-detail-btn" onclick="" 
-                                        style="background-color: red; border-color: red; margin-left: 10px;">
-                                            <a style="text-decoration: none; color: white; " 
-                                            href="{{url_for('delete_employees',id=obj.EmployeeID)}}">Delete</a>
-                                        </button>
+    
+                                        
                                     </div>
                                 </td>
-                            <!-- </form> -->
+                            </form>
                         </tr>
                         {% endfor %}
                        

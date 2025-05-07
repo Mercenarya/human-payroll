@@ -285,6 +285,7 @@ def user_session():
 
 
 @login_required
+@arms_decorator_cors('administrator')
 @app.route('/management',methods=['POST','GET'])
 def management():
     message = ""
@@ -368,6 +369,12 @@ def management():
             INSERT INTO Positions (PositionID,PositionName,CreatedAt,UpdatedAt)
             VALUES (?,?,?,?)
             '''
+
+            middle_insert = '''
+            INSERT INTO employeetotallist (EmployeeID,DepartmentID,PositionID,CreateAt)
+            '''
+
+            '''Bổ sung kiểm tra email và sđt vì đây là 2 thông tin đặc thù cho mỗi nhân viên không thể bị trùng'''
             
 
 
@@ -391,6 +398,8 @@ def management():
             SELECT * FROM Positions
             '''
 
+            emp_query = '''SELECT * FROM Employees'''
+
             
             
             # Thực thi lệnh từ MySQL
@@ -409,18 +418,29 @@ def management():
             server_cursor.execute(server_pos)
             server_ps = server_cursor.fetchall()
 
+            # truy vấn danh sách nhân viên từ bảng Employee
+
+            mysql_cursor.execute(emp_query)
+            emp_mysl = mysql_cursor.fetchall()
+
+            server_cursor.execute(emp_query)
+            emp_sql = server_cursor.fetchall()
+
+            
+
 
             # so sánh thông tin vừa nhập vào với database 
             exist_dp = any(int(departmentid) == int(dp[0]) for dp in department)
             exist_pos = any(int(jobid) == int(pos[0]) for pos in position)
-            exist_salary = any(int(empid) == int(sal[1]) for sal in salaries)
-
-
-
+            
+            # kiểm tra tồn tại ID
+            exist_empid_mysql = any(int(empid) == int(emp[0]) for emp in emp_mysl)
+            exist_empid_sql = any(int(empid) == int(emp[0]) for emp in emp_sql)
+            # kiểm tra tồn tại phòng ban
             exist_dp_server = any(int(departmentid) == int(dp[0]) for dp in server_dp)
             exist_pos_server = any(int(jobid) == int(ps[0]) for ps in server_ps)
-            if basesalaries == "" or bonus == "":
-                flask.flash("Base value or Bonus must be added first")
+            
+            
             # Nếu các thông tin chưa từng tồn tại trước đó
             # hệ thống sẽ khởi tạo một phòng ban và vị trí mới cho nhân viên đó
             if not exist_dp and not exist_dp_server:
@@ -437,6 +457,10 @@ def management():
                 server_cursor.execute("SET IDENTITY_INSERT Positions ON")
                 server_cursor.execute(sql_server_pos,[jobid,jobtitle,createdat,updateat])
                 server_cursor.execute("SET IDENTITY_INSERT Positions OFF")
+            
+            if exist_empid_mysql and exist_empid_sql:
+                message = "This User.ID is already exists"
+            
             session["empID"] = empid
 
             mysql_cursor.execute(my_sql_emp, [empid, fullname, departmentid, jobid, status])
@@ -449,6 +473,10 @@ def management():
 
             mysql_cursor.execute(my_sql_salary,[empid,monthsalary,basesalaries,
                                                 bonus,deduction,netsalaries,createdat])
+            
+
+
+           
 
             conn_mysql.commit()
             server_cursor.connection.commit()
@@ -503,12 +531,23 @@ def dashboard():
     except Exception as error:
         return error
 
+# model sublime - below:
+'''
+    non-local variables
+    if (Post);
+       post methods logic (try - except)
+    get methods logic - else
+
+'''
+
 @app.route("/edit/<int:id>",methods=["GET","POST"])
 @arms_decorator_cors("administrator")
 def edit_employees(id):
-    if request.method == "GET":
-        emp_sql_query = '''SELECT * FROM employees WHERE Employeeid = %s'''
-        message = ""
+    user = session.get("username")
+    message = ""
+    if request.method == "POST":
+        emp_sql_query = '''UPDATE employees SET Employeeid '''
+        
         try:
             cursor = conn_mysql.cursor(dictionary=True)
             cursor.execute(emp_sql_query,[id])
@@ -517,16 +556,16 @@ def edit_employees(id):
                 message = f"Employee {id} is invalid"
             
             else:
-                user = session.get("username")
                 return render_template("editemp.html",emp=employee,usr=user,msg = message)
-            
             
 
         except Exception as err:
             return {
                 "error-message":f"{err}"
             }
-        
+    
+    return render_template("editemp.html",emp=employee,usr=user,msg = message)   
+
 @app.route("/delete/<int:id>", methods = ["GET","POST"])
 @arms_decorator_cors("administrator")
 def delete_employees(id):
@@ -621,6 +660,7 @@ def search():
         except Exception as error:
             return f"{error}"
         return render_template("dashboard.html",msg = message)
+    
 
 @app.route('/clear',methods = ["POST","GET"])
 @arms_decorator_cors("administrator")
@@ -671,7 +711,30 @@ def payroll():
             }
         
 
-        
+# Hiển thị dánh sách phòng ban
+@app.route("/departments",methods=["GET","POST"])
+# danh sách phòng ban là không yêu cầu ràng buộc bởi vai trò cụ thể nên ko dùng đến middleware
+def show_departments():
+    message = ""
+    departments = []
+    user = session.get("username")
+    try:
+        sql = '''SELECT * FROM departments'''
+        #tùy chỉnh 1 trong 2 CSDL 
+        mysql_cursor.execute(sql)
+        department = mysql_cursor.fetchall()
+        for obj in department:
+            departments.append(
+                {
+                    "ID":obj[0],
+                    "Department":obj[1],
+                }
+            )
+        return render_template("",usr = user,message = message, department = department)
+    except Exception as error:
+        return {
+            "error-message":f"{error}"
+        }      
         
 
 # hiển thị danh sách tài khoản ban quản trị - administrator
@@ -876,8 +939,7 @@ def delete_accounts(id):
             
         
 
-       
-
+    
 # Đăng xuất tài khoản
 @app.route('/logout',methods = ['GET','POST'])
 def logout():

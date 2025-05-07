@@ -63,6 +63,45 @@ def check_accounts():
             print(f"Username: {obj[1]} - email: {obj[3]} - role: {obj[4]}")
     except pyodbc.Error as err:
         return err
+    
+'''Các bảng CSDL nguyên bản sau khi tạo thành đều cần đến các bảng CSDL trung gian'''
+"Mục đích của các bản CSDL để nhằm đảm bảo tính chuẩn hóa CSDL,"
+" tính mở rộng cho các bảng, tránh các xung đột và khuyết điểm không cần thiết"
+
+def create_middle_department_pos():
+    try:
+        sql = '''
+        CREATE TABLE DepartmentPositions (
+            ID INT IDENTITY PRIMARY KEY,
+            DepartmentID INT NOT NULL,
+            PositionID INT NOT NULL,
+            FOREIGN KEY (DepartmentID) REFERENCES departments(DepartmentID),
+            FOREIGN KEY (PositionID) REFERENCES positions(PositionID)
+        )
+        '''
+        cursor.execute(sql)
+        return "DeparmentPositions has established"
+    except pyodbc.Error as err:
+        return f"{err}"
+def create_middle_employees_dp_pos():
+    try:
+        sql = '''
+            CREATE TABLE employeetotallist  (
+                ID INT IDENTITY PRIMARY KEY ,
+                EmployeeID INT NOT NULL,
+                DepartmentID INT NOT NULL,
+                PositionID INT NOT NULL,
+                CreatedAt DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (DepartmentID) REFERENCES departments(DepartmentID),
+                FOREIGN KEY (PositionID) REFERENCES positions(PositionID),
+                FOREIGN KEY (EmployeeID) REFERENCES employees(EmployeeID)
+            )
+        '''
+        cursor.execute(sql)
+        return "Table Employee has established"
+    except pyodbc.Error as err:
+        return f"{err}"
+
 if __name__ == "__main__":
     # cursor.execute("SELECT * FROM sys.tables")
     print("Requesting...")
@@ -73,5 +112,7 @@ if __name__ == "__main__":
     # print(check_employees())
     # print(create_accounts())
     # print(new_accounts())
-    print(check_accounts())
+    # print(check_accounts())
+    print(create_middle_department_pos())
+    print(create_middle_employees_dp_pos())
     

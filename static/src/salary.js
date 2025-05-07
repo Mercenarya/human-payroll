@@ -1,4 +1,4 @@
-const { json } = require("body-parser");
+
 
 
 // tính lương ròng, lương hàng tháng
@@ -18,11 +18,11 @@ function salary_caculate(event){
     // lấy dữ liệu được hiển thị nhập giao diện người dùng
     
     // kiểm tra giá trị đầu vào của lương bổng
-    if (baseSalary.value == "" || bonus,value == ""){
+    if (baseSalary.value == "" || bonus.value == ""){
         alert("Base value or Bonus must be added first")
     }
     // trả về kết quả của 2 dữ liệu
-    const summary_month_salary = parseFloat(baseSalary.value) + parseFloat(bonus.value);
+    const summary_month_salary = parseInt(baseSalary.value) + parseInt(bonus.value);
     const summary_net_salary = summary_month_salary - parseFloat(deduction.value);
     
     // hiển thị kết quả sau khi ép kiểu Float
