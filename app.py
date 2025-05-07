@@ -543,14 +543,17 @@ def dashboard():
 @app.route("/edit/<int:id>",methods=["GET","POST"])
 @arms_decorator_cors("administrator")
 def edit_employees(id):
+    cursor = conn_mysql.cursor(dictionary=True)
+    
     user = session.get("username")
     message = ""
+   
     if request.method == "POST":
         emp_sql_query = '''UPDATE employees SET Employeeid '''
         
         try:
-            cursor = conn_mysql.cursor(dictionary=True)
-            cursor.execute(emp_sql_query,[id])
+            
+            server_cursor.execute(emp_sql_query,(id))
             employee = cursor.fetchone()
             if not employee:
                 message = f"Employee {id} is invalid"
@@ -564,7 +567,42 @@ def edit_employees(id):
                 "error-message":f"{err}"
             }
     
-    return render_template("editemp.html",emp=employee,usr=user,msg = message)   
+    try:
+        
+        emp_sql_query = '''SELECT * FROM employees WHERE EmployeeID = %s '''
+        emp_sv_query = '''
+                SELECT 
+                    Employees.EmployeeID,
+                    Employees.Fullname,
+                    Employees.DateOfBirth,
+                    Employees.Gender,
+                    Employees.Phonenumber,
+                    Employees.Email,
+                    Employees.DepartmentID,
+                    Departments.DepartmentName as departmentname,
+                    Employees.PositionID,
+                    Positions.PositionName as positionname,
+                    Employees.HireDate
+                FROM Employees
+                INNER JOIN Departments ON Departments.DepartmentID = Employees.DepartmentID
+                INNER JOIN Positions ON Positions.PositionID = Employees.PositionID
+                WHERE Employees.EmployeeID = ?'''
+        
+        server_cursor.execute(emp_sv_query,(id,))
+        employees = server_cursor.fetchone()
+       
+        
+          
+        return render_template("editemp.html",msg=message,emp=employees,usr=user)
+        
+
+    except Exception as err:
+        return {
+            "error-message":f"{err}"
+        },405
+
+    
+    
 
 @app.route("/delete/<int:id>", methods = ["GET","POST"])
 @arms_decorator_cors("administrator")
@@ -862,7 +900,7 @@ def edit_rights(id):
         except Exception as error:
             return {
                 "error-message":f"{error}"
-            }
+            },405
 
        
         
