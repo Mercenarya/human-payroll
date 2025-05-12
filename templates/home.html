@@ -34,52 +34,18 @@
                                     <a style="color: grey;" href="{{url_for('show_departments')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Departments</span> </a>
                                 </li>
                                 <li>
-                                    <a style="color: grey;" href="#"  class="nav-link px-0"> <span class="d-none d-sm-inline">Payroll</span> </a>
+                                    <a style="color: grey;" href="{{ url_for('payroll') }}" class="nav-link px-0"> <span class="d-none d-sm-inline">Payroll</span> </a>
                                 </li>
                                 <li>
                                     <a style="color: grey;" href="{{url_for('permission_rights')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Rights & Permission</span> </a>
                                 </li>
-                            
                             </ul>
                         </li>
                         <li>
                             <a href="{{url_for('management')}}" class="nav-link px-0 align-middle">
                                 <i class="fs-4 bi-table"></i> <span class="ms-1 d-none d-sm-inline">Manage</span></a>
                         </li>
-                        <li>
-                            <a href="#submenu2" data-bs-toggle="collapse" class="nav-link px-0 align-middle ">
-                                <i class="fs-4 bi-bootstrap"></i> <span class="ms-1 d-none d-sm-inline">Bootstrap</span></a>
-                            <ul class="collapse nav flex-column ms-1" id="submenu2" data-bs-parent="#menu">
-                                <li class="w-100">
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Item</span> 1</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Item</span> 2</a>
-                                </li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#submenu3" data-bs-toggle="collapse" class="nav-link px-0 align-middle">
-                                <i class="fs-4 bi-grid"></i> <span class="ms-1 d-none d-sm-inline">Products</span> </a>
-                                <ul class="collapse nav flex-column ms-1" id="submenu3" data-bs-parent="#menu">
-                                <li class="w-100">
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 1</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 2</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 3</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 4</a>
-                                </li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#" class="nav-link px-0 align-middle">
-                                <i class="fs-4 bi-people"></i> <span class="ms-1 d-none d-sm-inline">Customers</span> </a>
-                        </li>
+                        
                     </ul>
                     <hr>
                     <div class="dropdown pb-4">
@@ -87,7 +53,7 @@
                             <img src="https://github.com/mdo.png" alt="hugenerd" width="30" height="30" class="rounded-circle">
                             <span class="d-none d-sm-inline mx-1" id="username-session">{{ usr }}</span>
                             <div class="username-sht" id="username-session">
-                                
+
                             </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
@@ -97,7 +63,7 @@
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li><a class="dropdown-item" id="sign-out-btn" href="{{url_for('logout')}}">Sign out</a></li>
+                            <li><a class="dropdown-item" id="sign-out-btn" href="#" onclick="logout()">Sign out</a></li>
                         </ul>
                     </div>
                 </div>
@@ -110,153 +76,159 @@
 
 
                 <!-- Statistics -->
-                <!-- Card 1 - Bootstrap Brain Component -->
-                <section class="py-3 py-md-5" id="Statistics">
-                    <div class="container">
-                    <div class="row justify-content-center">
-                        <div class="col-12 col-lg-10 col-xl-8 col-xxl-7">
-                        <div class="row gy-4">
-                            <div class="col-12 col-sm-6">
-                            <div class="card widget-card border-light shadow-sm">
-                                <div class="card-body p-4">
-                                <div class="row" id="total-sales">
-                                    <!-- <div class="col-8">
-                                    <h5 class="card-title widget-card-title mb-3">Sales</h5>
-                                    <h4 class="card-subtitle text-body-secondary m-0">$6,820</h4>
-                                    </div>
-                                    <div class="col-4">
-                                    <div class="d-flex justify-content-end">
-                                        <div class="lh-1 text-white bg-info rounded-circle p-3 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-truck fs-4"></i>
-                                        </div>
-                                    </div>
-                                    </div> -->
-                                </div>
-                                <div class="row">
-                                    <div class="col-12">
-                                    <div class="d-flex align-items-center mt-3">
-                                        <span class="lh-1 me-3 bg-danger-subtle text-danger rounded-circle p-1 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-arrow-right-short bsb-rotate-45"></i>
-                                        </span>
-                                        <div>
-                                        <p class="fs-7 mb-0">-9%</p>
-                                        <p class="fs-7 mb-0 text-secondary">since last week</p>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-                            <div class="col-12 col-sm-6">
-                            <div class="card widget-card border-light shadow-sm">
-                                <div class="card-body p-4">
-                                <div class="row">
-                                    <div class="col-8">
-                                    <h5 class="card-title widget-card-title mb-3">Earnings</h5>
-                                    <h4 class="card-subtitle text-body-secondary m-0">$21,900</h4>
-                                    </div>
-                                    <div class="col-4">
-                                    <div class="d-flex justify-content-end">
-                                        <div class="lh-1 text-white bg-info rounded-circle p-3 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-currency-dollar fs-4"></i>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-12">
-                                    <div class="d-flex align-items-center mt-3">
-                                        <span class="lh-1 me-3 bg-success-subtle text-success rounded-circle p-1 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-arrow-right-short bsb-rotate-n45"></i>
-                                        </span>
-                                        <div>
-                                        <p class="fs-7 mb-0">+26%</p>
-                                        <p class="fs-7 mb-0 text-secondary">since last week</p>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-                            <div class="col-12 col-sm-6">
-                            <div class="card widget-card border-light shadow-sm">
-                                <div class="card-body p-4">
-                                <div class="row" id="total-users">
-                                    <!-- <div class="col-8">
-                                    <h5 class="card-title widget-card-title mb-3">Users</h5>
-                                    <h4 class="card-subtitle text-body-secondary m-0">3,764</h4>
-                                    </div>
-                                    <div class="col-4">
-                                    <div class="d-flex justify-content-end">
-                                        <div class="lh-1 text-white bg-info rounded-circle p-3 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-person fs-4"></i>
-                                        </div>
-                                    </div>
-                                    </div> -->
-                                </div>
-                                <div class="row">
-                                    <div class="col-12">
-                                    <div class="d-flex align-items-center mt-3">
-                                        <span class="lh-1 me-3 bg-success-subtle text-success rounded-circle p-1 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-arrow-right-short bsb-rotate-n45"></i>
-                                        </span>
-                                        <div>
-                                        <p class="fs-7 mb-0">+69%</p>
-                                        <p class="fs-7 mb-0 text-secondary">since last week</p>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-                            <div class="col-12 col-sm-6">
-                            <div class="card widget-card border-light shadow-sm">
-                                <div class="card-body p-4">
-                                <div class="row" id="total-orders">
-                                    <!-- <div class="col-8">
-                                    <h5 class="card-title widget-card-title mb-3">Orders</h5>
-                                    <h4 class="card-subtitle text-body-secondary m-0">786</h4>
-                                    </div>
-                                    <div class="col-4">
-                                    <div class="d-flex justify-content-end">
-                                        <div class="lh-1 text-white bg-info rounded-circle p-3 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-cart fs-4"></i>
-                                        </div>
-                                    </div>
-                                    </div> -->
-                                </div>
-                                <div class="row">
-                                    <div class="col-12">
-                                    <div class="d-flex align-items-center mt-3">
-                                        <span class="lh-1 me-3 bg-danger-subtle text-danger rounded-circle p-1 d-flex align-items-center justify-content-center">
-                                        <i class="bi bi-arrow-right-short bsb-rotate-45"></i>
-                                        </span>
-                                        <div>
-                                        <p class="fs-7 mb-0">-21%</p>
-                                        <p class="fs-7 mb-0 text-secondary">since last week</p>
-                                        </div>
-                                    </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                </section>
-                <!-- endline -->
+                <form action="{{url_for('home')}}">
+                    <div class="container py-5">
+                    <h2 class="mb-4">📊 HR & Payroll Statistics</h2>
 
+                    <!-- HR Section -->
+                    <div class="mb-5">
+                    <h4 class="mb-3">👥 Human Resources</h4>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                        <div class="card text-bg-primary">
+                            <div class="card-body">
+                            <h5 class="card-title">Total Employees</h5>
+                            <p class="card-text fs-4">{{total_count}}</p>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="col-md-3">
+                        <div class="card text-bg-success">
+                            <div class="card-body">
+                            <h5 class="card-title">Active Employees</h5>
+                            <p class="card-text fs-4">{{total_active}}</p>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="col-md-3">
+                        <div class="card text-bg-warning">
+                            <div class="card-body">
+                            <h5 class="card-title">Inactive Employees</h5>
+                            <p class="card-text fs-4">{{total_inactive}}</p>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="col-md-3">
+                        <div class="card text-bg-info">
+                            <div class="card-body">
+                            <h5 class="card-title">Departments</h5>
+                            <p class="card-text fs-4">{{total_dp}}</p>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Payroll Section -->
+                    <div>
+                    <h4 class="mb-3">💰 Payroll</h4>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                        <div class="card text-bg-secondary">
+                            <div class="card-body">
+                            <h5 class="card-title">Employees Receiving Salary</h5>
+                            <p class="card-text fs-4">{{total_slr}}</p>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="col-md-4">
+                        <div class="card text-bg-danger">
+                            <div class="card-body">
+                            <h5 class="card-title">Highest Salary</h5>
+                            <p class="card-text fs-4">{{highest_SR}}</p>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="col-md-4">
+                        <div class="card text-bg-light border">
+                            <div class="card-body">
+                            <h5 class="card-title">Deductions</h5>
+                            <ul class="mb-0">
+                                <li>Social Insurance</li>
+                                <li>Health Insurance</li>
+                                <li>Fines</li>
+                                <li>Personal Income Tax</li>
+                            </ul>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
+                    <div class="container mt-5">
+                    <h4 class="mb-3">🚨 Alert & Notification System</h4>
+                    <div class="row g-3">
+
+                        <!-- Work Anniversary Alert -->
+                        <div class="col-md-6">
+                            <div class="alert alert-warning" role="alert">
+                                <i class="bi bi-calendar-event me-2"></i>
+                                <strong>Employees approaching work anniversary:</strong>
+                                {% for obj in anni_list %}
+                                <ul class="mt-2 mb-0">
+                                    <li>{{ obj }}</li>
+                                </ul>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Excessive Leave Alert -->
+                        <div class="col-md-6">
+                            <div class="alert alert-danger" role="alert">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong>Employees with excessive leave days:</strong>
+                                <ul class="mt-2 mb-0">
+                                    <li>Employee.ID: {{max_leave_day}}</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Salary Discrepancy Alert -->
+                        <div class="col-md-6">
+                            <div class="alert alert-info" role="alert">
+                                <i class="bi bi-graph-up-arrow me-2"></i>
+                                <strong>Salary discrepancies detected:</strong>
+                                <ul class="mt-2 mb-0">
+                                    {% for discrepancy in salary_discrepancies %}
+                                        <li>{{ discrepancy.name }} (ID: {{ discrepancy.id }}) – Difference: {{ discrepancy.amount }}</li>
+                                    {% else %}
+                                        <li>No discrepancies detected</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Payslip Email Notification -->
+                        <div class="col-md-6">
+                            <div class="alert alert-success" role="alert">
+                                <i class="bi bi-envelope-paper me-2"></i>
+                                <strong>Payslips emailed to:</strong>
+                                <ul class="mt-2 mb-0">
+                                    {% for emp in payslip_sent %}
+                                        <li>{{ emp.name }} (ID: {{ emp.id }}) – Sent: {{ emp.sent_date }}</li>
+                                    {% else %}
+                                        <li>No payslips sent this month</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                </form>
+                <!-- endline -->
                 
+                <!-- Alerts and Notifications -->
+                <!-- Alerts and Notifications -->
+                
+
+
                 
             </div>
+            
 
         </div>
-
+        
 
         <!-- top sell  -->
         <!-- <div class="container mt-4" id="top-sell">

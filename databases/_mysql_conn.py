@@ -184,6 +184,13 @@ def create_middle_employees_dp_pos():
         return "Table Employee has established"
     except mysql.connector.errors as err:
         return f"{err}"
+def truncate_emp():
+    sql = '''TRUNCATE TABLE employees'''
+    try:
+        cursor.execute(sql)
+        return "Clear records of employees"
+    except Exception as err:
+        return f"{err}"
 
 # chạy các hàm ở dưới
 if __name__ == '__main__':
@@ -194,4 +201,5 @@ if __name__ == '__main__':
     # print(new_accounts())
     # print(check_accounts())
     # print(create_middle_department_pos())
-    print(create_middle_employees_dp_pos())
+    # print(create_middle_employees_dp_pos())
+    print(truncate_emp())

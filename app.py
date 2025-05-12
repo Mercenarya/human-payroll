@@ -13,7 +13,7 @@ import datetime
 # import config
 import mysql.connector
 import pyodbc
-
+import jwt
 #tạo kết nối CSDL đến SQL server thông qua pyodbc
 server = 'LAPTOP-OOTVABFJ\\SQLEXPRESS'
 database = 'HUMAN'
@@ -35,7 +35,7 @@ conn_mysql = mysql.connector.connect(
     password="Minh_17102004",
     database = "NEMO"
 )
-mysql_cursor = conn_mysql.cursor()
+
 
 # tạo khóa cho bộ mã hóa 
 key = Fernet.generate_key()
@@ -46,7 +46,7 @@ key_handler = Fernet(key)
 # Khởi tạo các tiện ích hỗ trợ đăng nhập
 login_mng = LoginManager()
 login_mng.init_app(app=app)
-
+SECRET_KEY = 'liulbu_polina'
 
 class User(UserMixin):
     def __init__(self,name,email,role):
@@ -112,6 +112,34 @@ def arms_decorator_cors(*role):
     return decorate
 
 
+
+def token_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 403
+
+        try:
+            # Giải mã token và lấy thông tin
+            decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            current_user = decoded_token['user_id']
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 403
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Invalid token!'}), 403
+
+        return f(current_user, *args, **kwargs)
+
+    return decorated_function
+
+# Ví dụ endpoint bảo vệ
+@app.route('/profile', methods=['GET'])
+@token_required
+def profile(current_user):
+    return jsonify({'message': f'Hello, {current_user}! This is your profile.'})
+
 # hàm chuyển đổi các dữ liệu từ dashboard sang json
 @login_required
 @app.route("/api/dashboard")
@@ -156,50 +184,142 @@ def json_progoluge():
 @login_required
 @app.route('/')
 def home():
+    today = datetime.datetime.today()
+    max_leave_day = 0
+    anni_list = []
     user = session.get("username")
-    # check_status('/')
-    return render_template('home.html',usr = user)
+    try:
+        conn_mysql.consume_results()
+    except: pass
+    try:
+        total_sql_emp = '''SELECT COUNT(*) AS total_emp FROM Employees'''
+        total_sql_active = '''
+        SELECT COUNT(*) AS total_active FROM Employees
+        WHERE status = 'Active'
+        '''
+        total_sql_inactive = '''
+        SELECT COUNT(*) AS total_active FROM Employees
+        WHERE status = 'inactive'
+        '''
+        total_departments = '''
+        SELECT COUNT(*) AS total_dp FROM Departments
+        '''
+
+        anni_emp = '''
+        SELECT EmployeeID, HireDate FROM Employees
+        '''
+
+        server_cursor.execute(total_sql_emp)
+        total_count = server_cursor.fetchone()[0]
+
+        server_cursor.execute(total_sql_active)
+        active_count = server_cursor.fetchone()[0]
+
+        server_cursor.execute(total_sql_inactive)
+        inactive_count = server_cursor.fetchone()[0]
+
+        server_cursor.execute(total_departments)
+        total_dp = server_cursor.fetchone()[0]
+
+        server_cursor.execute(anni_emp)
+        anniversaries = server_cursor.fetchall()
+        for anni in anniversaries:
+            emp = anni[0]
+            hired = anni[1]
+            if hired.month == today.month and hired.day == today.day:
+                anni_list.append(
+                    f"Employee.ID {emp} - {hired}"
+                )
+
+
+        with conn_mysql.cursor(dictionary=True,buffered=True) as cursor:
+            total_salaries_recieved = '''
+            SELECT COUNT(*) AS total_slr FROM salaries
+            '''
+            highest_slr = '''SELECT MAX(NetSalary) AS max_slr
+            FROM salaries'''
+
+            max_leave = '''SELECT EmployeeID AS max_leave FROM attendance
+            WHERE LeaveDays > 5 '''
+
+            cursor.execute(total_salaries_recieved)
+            total_slr = cursor.fetchone()['total_slr']
+
+            cursor.execute(highest_slr)
+            highest_slr_getdata = cursor.fetchone()['max_slr']
+
+            cursor.execute(max_leave)
+            max_leave_emp = cursor.fetchone()
+            if max_leave_emp:
+                max_leave_day = cursor.fetchone()["max_leave"]
+            else:
+                max_leave_day = 0
+        
+        return render_template('home.html',
+                               usr = user,
+                            total_count=total_count,
+                            total_active=active_count,
+                            total_inactive=inactive_count,
+                            total_dp = total_dp,
+                            total_slr=total_slr,
+                            highest_SR=highest_slr_getdata,
+                            max_leave_day = max_leave_day,
+                            anni_list=anni_list)
+
+
+    except Exception as error:
+        return {
+            "error-message":f"{error}"
+        }
+    
 
 # trang đăng nhập
-@app.route('/login', methods = ['GET','POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     message = ""
+    session.clear()
+    
     if request.method == "POST":
         try:
-            
             username = request.form.get('username')
             password = request.form.get('password')
             email = request.form.get('email')
 
             my_sql = '''
-                SELECT username,password,email,role
+                SELECT username, password, email, role
                 FROM accounts
                 WHERE username = %s AND password = %s AND email = %s
-                
-                '''
+            '''
             
-            mysql_cursor.execute(my_sql,[username,password,email])
-            account = mysql_cursor.fetchone()
+            with conn_mysql.cursor() as mysql_cursor:
+                mysql_cursor.execute(my_sql, [username, password, email])
+                account = mysql_cursor.fetchone()
+
             if account:
-                
-                message = "Sign in Successfully"
-                login_user(
-                        User(
-                        name=account[0],
-                        email=account[2],
-                        role=account[3]
-                    )
-                )
+                # Ghi thông tin vào session để middleware sử dụng
                 session['username'] = account[0]
                 session['email'] = account[2]
                 session['role'] = account[3]
-                return render_template("home.html")
-            
+
+                # Tạo JWT Token
+                payload = {
+                    'user_id': account[0],
+                    'email': account[2],
+                    'role': account[3],
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)  # Token hết hạn sau 2 giờ
+                }
+                token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+                message = "Sign in Successfully"
+                
+                # Trả về giao diện chính kèm token nếu cần
+                return render_template("home.html", usr=account[0], token=token)
             else:
-                message = "Sorry, This account is invalid"
+                message = "Sorry, this account is invalid"
         except mysql.connector.Error as err:
-            return err
-    return render_template('login.html',msg = message)
+            return jsonify({'error': str(err)})
+    
+    return render_template('login.html', msg=message)
 
 
 
@@ -209,6 +329,9 @@ def login():
 def register():
     message = ''
     emailform = ['@gmail.com']
+    try:
+        conn_mysql.consume_results()
+    except: pass
     if request.method == 'POST':
 
         try:
@@ -225,7 +348,7 @@ def register():
                         WHERE username = %s'''
             check_sqlserver = '''SELECT * FROM accounts 
                         WHERE username = ?'''
-                        
+            mysql_cursor = conn_mysql.cursor()            
             mysql_cursor.execute(check_mysql,[username])
             server_cursor.execute(check_sqlserver,[username])
             mysql_acc = mysql_cursor.fetchone()
@@ -280,8 +403,33 @@ def user_session():
 
 
 
+@login_required
+@arms_decorator_cors('staff')
+@app.route("/staff",methods=["GET","POST"])
+def staff():
     
-
+    user = session.get("user")
+    emp_sv_query = '''
+                SELECT 
+                    Employees.EmployeeID,
+                    Employees.Fullname,
+                    Employees.DateOfBirth,
+                    Employees.Gender,
+                    Employees.Phonenumber,
+                    Employees.Email,
+                    Employees.DepartmentID,
+                    Departments.DepartmentName as departmentname,
+                    Employees.PositionID,
+                    Positions.PositionName as positionname,
+                    Employees.HireDate
+                FROM Employees
+                INNER JOIN Departments ON Departments.DepartmentID = Employees.DepartmentID
+                INNER JOIN Positions ON Positions.PositionID = Employees.PositionID
+                WHERE Employees.EmployeeID = ?'''
+        
+    server_cursor.execute(emp_sv_query,(id,))
+    employees = server_cursor.fetchone()
+    return render_template("staff.html",ur=user)
 
 
 @login_required
@@ -321,8 +469,58 @@ def management():
         createdat = datetime.datetime.now()
         updateat = datetime.datetime.now() 
         
+        def check_department_pos():
+            try:
+                middle_dpps_mysql = '''
+                INSERT INTO departmentpositions (DepartmentID,PositionID)
+                VALUES (%s,%s)
+                '''
+
+                middle_dpps_sql = '''
+                INSERT INTO departmentpositions (DepartmentID,PositionID)
+                VALUES (?,?)
+                '''
+
+                check_dpps_mysql = '''
+                SELECT * FROM departmentpositions
+                WHERE DepartmentID = %s AND PositionID = %s
+                '''
+
+                check_dpps_sql = '''
+                SELECT * FROM departmentpositions
+                WHERE DepartmentID = ? AND PositionID = ?
+                '''
+
+                with conn_mysql.cursor(dictionary=True,buffered=True) as mysql_cursor:
+                    mysql_cursor.execute(check_dpps_mysql,[departmentid,jobid])
+                    result_dpps_mysql = mysql_cursor.fetchone()
+
+                    server_cursor.execute(check_dpps_sql,(departmentid,jobid,))
+                    result_dpps_sql = server_cursor.fetchone()
+                    
+                    if result_dpps_mysql and result_dpps_sql:
+                        pass
+                    else:
+                        with conn_mysql.cursor(dictionary=True,buffered=True) as cursor:
+                            cursor.execute(middle_dpps_mysql,[departmentid,jobid])
+                            conn_mysql.commit()
+                        
+                        server_cursor.execute(middle_dpps_sql,(departmentid,jobid,))
+                        server_cursor.connection.commit()
+                    
+
+
+            except Exception as dpp_error:
+                return {
+                    "error-message-dppos":f"{dpp_error}"
+                }
+
 
         try:
+            try:
+                conn_mysql.consume_results()
+            except:
+                pass
             #MYSQL
             # Lệnh chèn dữ liệu vào mysql ở mục nhân viên 
             my_sql_emp = '''
@@ -370,9 +568,20 @@ def management():
             VALUES (?,?,?,?)
             '''
 
-            middle_insert = '''
-            INSERT INTO employeetotallist (EmployeeID,DepartmentID,PositionID,CreateAt)
+            middle_insert_mysql = '''
+            INSERT INTO employeetotallist (EmployeeID,DepartmentID,PositionID,CreatedAt) 
+            VALUES (%s,%s,%s,%s)
             '''
+
+            middle_insert_sql = '''
+            INSERT INTO employeetotallist (EmployeeID,DepartmentID,PositionID,CreatedAt) 
+            VALUES (?,?,?,?)
+            '''
+
+
+            
+            
+
 
             '''Bổ sung kiểm tra email và sđt vì đây là 2 thông tin đặc thù cho mỗi nhân viên không thể bị trùng'''
             
@@ -400,7 +609,7 @@ def management():
 
             emp_query = '''SELECT * FROM Employees'''
 
-            
+            mysql_cursor = conn_mysql.cursor()
             
             # Thực thi lệnh từ MySQL
             mysql_cursor.execute(sql_department)
@@ -457,7 +666,8 @@ def management():
                 server_cursor.execute("SET IDENTITY_INSERT Positions ON")
                 server_cursor.execute(sql_server_pos,[jobid,jobtitle,createdat,updateat])
                 server_cursor.execute("SET IDENTITY_INSERT Positions OFF")
-            
+                
+
             if exist_empid_mysql and exist_empid_sql:
                 message = "This User.ID is already exists"
             
@@ -469,12 +679,17 @@ def management():
             server_cursor.execute(sql_server_emp,[empid, fullname, birth, gender, phone, email, hiredate,
                                             departmentid, jobid, status, createdat, updateat])
             server_cursor.execute("SET IDENTITY_INSERT employees OFF")
-           
+            print(check_department_pos())
 
             mysql_cursor.execute(my_sql_salary,[empid,monthsalary,basesalaries,
                                                 bonus,deduction,netsalaries,createdat])
             
+            
 
+            mysql_cursor.execute(middle_insert_mysql,[empid,departmentid,jobid,createdat])
+            server_cursor.execute(middle_insert_sql,[empid,departmentid,jobid,createdat])
+            
+            
 
            
 
@@ -501,11 +716,16 @@ def management():
 @arms_decorator_cors('HR')
 @app.route('/dashboard', methods = ['GET','POST'])
 def dashboard():
+    user = session.get("username")
+    try:
+        conn_mysql.consume_results()
+    except: 
+        pass
     try:
         
         sql_server_qry = '''
             SELECT 
-                Employees.EmployeeID,
+                employeetotallist.EmployeeID,
                 Employees.FullName,
                 Employees.DateOfBirth,
                 Employees.Gender,
@@ -518,18 +738,23 @@ def dashboard():
                 Employees.CreatedAt,
                 Employees.UpdatedAt
 
-            FROM Employees
-            INNER JOIN Departments ON Employees.DepartmentID = Departments.DepartmentID
-            INNER JOIN Positions ON Employees.PositionID = Positions.PositionID 
+            FROM employeetotallist
+            INNER JOIN Departments ON employeetotallist.DepartmentID = Departments.DepartmentID
+            INNER JOIN Positions ON employeetotallist.PositionID = Positions.PositionID
+            INNER JOIN Employees ON employeetotallist.EmployeeID = Employees.EmployeeID
         '''
         
-        server_cursor.execute(sql_server_qry)
-        employees = server_cursor.fetchall()
+        with conn_mysql.cursor() as cursor:
+            server_cursor.execute(sql_server_qry)
+            employees = server_cursor.fetchall()
         
-        user = session.get("username")
+        
         return render_template('dashboard.html',human = employees,usr = user)
     except Exception as error:
-        return error
+        return {
+            "error-message":f"{error}"
+        }
+
 
 # model sublime - below:
 '''
@@ -539,38 +764,80 @@ def dashboard():
     get methods logic - else
 
 '''
-
-@app.route("/edit/<int:id>",methods=["GET","POST"])
-@arms_decorator_cors("administrator")
+@app.route("/edit/<int:id>", methods=["GET", "POST"])
+@arms_decorator_cors('administrator')
 def edit_employees(id):
-    cursor = conn_mysql.cursor(dictionary=True)
-    
     user = session.get("username")
+    role = session.get("role")  # 'Administrator', 'HR Manager', 'Payroll Manager'
     message = ""
-   
-    if request.method == "POST":
-        emp_sql_query = '''UPDATE employees SET Employeeid '''
-        
-        try:
-            
-            server_cursor.execute(emp_sql_query,(id))
-            employee = cursor.fetchone()
-            if not employee:
-                message = f"Employee {id} is invalid"
-            
-            else:
-                return render_template("editemp.html",emp=employee,usr=user,msg = message)
-            
 
-        except Exception as err:
-            return {
-                "error-message":f"{err}"
-            }
-    
     try:
-        
-        emp_sql_query = '''SELECT * FROM employees WHERE EmployeeID = %s '''
-        emp_sv_query = '''
+        conn_mysql.consume_results()
+    except:
+        pass
+
+    if request.method == "POST":
+        empid = request.form.get("employeeid")
+        fullname = request.form.get("fullname")
+        phone = request.form.get("Phone")
+        email = request.form.get("email")
+        gender = request.form.get("Gender")
+        birth = request.form.get("birthday")
+        departmentid = request.form.get("departmentID")
+        jobid = request.form.get("jobid")
+        hiredate = request.form.get("hiredate")
+        status = request.form.get("status")
+        departmentname = request.form.get("departmentName")
+        jobtitle = request.form.get("jobtitle")
+
+        deduction = request.form.get("deduction")
+        bonus = request.form.get("bonus")
+        basesalaries = request.form.get("basesalaries")
+        netsalaries = request.form.get("netsalaries")
+        monthsalary = request.form.get("monthsalary")
+
+        try:
+            # --- HR Manager or Administrator: Update HR info ---
+            if role in ["HR", "Administrator"]:
+                emp_sql_query = '''
+                    UPDATE employees SET
+                        Fullname = ?, DateOfBirth = ?, Gender = ?,
+                        PhoneNumber = ?, Email = ?, HireDate = ?,
+                        DepartmentID = ?, PositionID = ?, Status = ?
+                    WHERE EmployeeID = ?
+                '''
+                server_cursor.execute(emp_sql_query, (
+                    fullname, birth, gender,
+                    phone, email, hiredate,
+                    departmentid, jobid, status, empid
+                ))
+                server_cursor.connection.commit()
+
+                if role == "Administrator":
+                    emp_msql_qry = '''
+                        UPDATE employees SET
+                            Fullname = %s, DepartmentID = %s, 
+                            PositionID = %s, Status = %s
+                        WHERE EmployeeID = %s
+                    '''
+                    with conn_mysql.cursor(dictionary=True, buffered=True) as cursor:
+                        cursor.execute(emp_msql_qry, [fullname, departmentid, jobid, status, empid])
+                        conn_mysql.commit()
+
+            # --- Payroll Manager or Administrator: Update payroll info ---
+            if role in ["Payroll Manager", "Administrator"]:
+                salary_update_qry = '''
+                    UPDATE salaries SET
+                        Bonus = %s, Deduction = %s,
+                        BaseSalary = %s, NetSalary = %s, MonthSalary = %s
+                    WHERE EmployeeID = %s
+                '''
+                with conn_mysql.cursor(dictionary=True, buffered=True) as cursor:
+                    cursor.execute(salary_update_qry, [bonus, deduction, basesalaries, netsalaries, monthsalary, empid])
+                    conn_mysql.commit()
+
+            # Lấy lại thông tin sau khi cập nhật
+            emp_sv_query = '''
                 SELECT 
                     Employees.EmployeeID,
                     Employees.Fullname,
@@ -586,26 +853,52 @@ def edit_employees(id):
                 FROM Employees
                 INNER JOIN Departments ON Departments.DepartmentID = Employees.DepartmentID
                 INNER JOIN Positions ON Positions.PositionID = Employees.PositionID
-                WHERE Employees.EmployeeID = ?'''
-        
-        server_cursor.execute(emp_sv_query,(id,))
-        employees = server_cursor.fetchone()
-       
-        
-          
-        return render_template("editemp.html",msg=message,emp=employees,usr=user)
-        
+                WHERE Employees.EmployeeID = ?
+            '''
+            server_cursor.execute(emp_sv_query, (id,))
+            employees = server_cursor.fetchone()
 
-    except Exception as err:
-        return {
-            "error-message":f"{err}"
-        },405
+            message = "Update Successfully"
+            return render_template("editemp.html", usr=user, msg=message, emp=employees, role=role)
+
+        except Exception as err:
+            return {"error-message": f"{err}"}
+
+    else:
+        # GET: load data
+        try:
+            emp_sv_query = '''
+                SELECT 
+                    Employees.EmployeeID,
+                    Employees.Fullname,
+                    Employees.DateOfBirth,
+                    Employees.Gender,
+                    Employees.Phonenumber,
+                    Employees.Email,
+                    Employees.DepartmentID,
+                    Departments.DepartmentName as departmentname,
+                    Employees.PositionID,
+                    Positions.PositionName as positionname,
+                    Employees.HireDate
+                FROM Employees
+                INNER JOIN Departments ON Departments.DepartmentID = Employees.DepartmentID
+                INNER JOIN Positions ON Positions.PositionID = Employees.PositionID
+                WHERE Employees.EmployeeID = ?
+            '''
+            server_cursor.execute(emp_sv_query, (id,))
+            employees = server_cursor.fetchone()
+
+            return render_template("editemp.html", msg=message, emp=employees, usr=user, role=role)
+
+        except Exception as err:
+            return {"error-message": f"{err}"}, 405
 
     
     
-
+@login_required
 @app.route("/delete/<int:id>", methods = ["GET","POST"])
 @arms_decorator_cors("administrator")
+@arms_decorator_cors('HR')
 def delete_employees(id):
     if request.method == "GET":
         message = ""
@@ -621,7 +914,10 @@ def delete_employees(id):
         user = session.get("username")
         
         try:
-            
+            try:
+                conn_mysql.consume_results()
+            except:
+                pass
             cursor = conn_mysql.cursor(dictionary=True)
             cursor.execute(check_records,[id])
             exists_records = cursor.fetchone()
@@ -684,6 +980,7 @@ def search():
         '''
         # sử dụng lệnh truy vấn LIKE nhằm mục đích hiển thị kết ngay từ khóa đầu tiên
         try:
+            
             search_param = f"%{searchvalue}%"
             server_cursor.execute(sql_server_qry,(search_param, search_param, search_param, search_param, search_param))
             result = server_cursor.fetchall()
@@ -708,6 +1005,7 @@ def clear_all_employees_data():
     user = session.get("username")
     if request.method == "POST":
         # xóa ở mục My SQL
+        mysql_cursor = conn_mysql.cursor()
         mysql_query = '''TRUNCATE TABLE employees'''
         mysql_cursor.execute(mysql_query)
         conn_mysql.commit()
@@ -725,55 +1023,222 @@ def clear_all_employees_data():
 
 # Danh sách bảng lương nhân viên
 @app.route("/payroll",methods=["GET","POST"])
-@arms_decorator_cors("Payroll Manager")
+@arms_decorator_cors('administrator')
+@arms_decorator_cors("Payroll manager")
 def payroll():
+    # Non-local Variables
     message = ""
     salaries = []
-    if request.method == 'POST':
-        mysql_query = '''SELECT * FROM salaries'''
+    data = []
+    user = session.get("username")
+
+    mysql_query = '''
+        SELECT
+            salaries.SalaryID,
+            salaries.EmployeeID,
+            employees.FullName as fullname,
+            salaries.BaseSalary,
+            salaries.SalaryMonth,
+            salaries.Bonus,
+            salaries.Deductions,
+            salaries.NetSalary,
+            salaries.CreatedAt
+        FROM salaries
+        INNER JOIN employees ON employees.EmployeeID = salaries.EmployeeID
+
+        '''
+    
+        
+    data = []
+    try:
+        conn_mysql.consume_results()
+    except:
+        pass
+    with conn_mysql.cursor(buffered=True) as mysql_cursor:
+        mysql_cursor.execute(mysql_query)
+        salary = mysql_cursor.fetchall()
+        for obj in salary:
+            data.append(
+                {
+                    "SalaryID":obj[0],
+                    "EmployeeID":obj[1],
+                    "Fullname":obj[2],
+                    "BaseSalary":obj[3],
+                    "SalaryMonth":obj[4],
+                    "Bonus":obj[5],
+                    "Deductions":obj[6],
+                    "NetSalary":obj[7],
+                    "Createat":obj[8]
+
+                }
+            )
+       
+                       
+        
+    try:
+        salaries = data
+        return render_template("salaries.html",slr = salaries,usr=user,msg=message)
+
+    except Exception as error:
+        message = f"{error}"
+        return {
+            "error-message":f"{message}"
+        }
+
+
+@app.route("/attendance/<int:id>", methods=["GET", "POST"])
+@arms_decorator_cors("Payroll Manager")
+@arms_decorator_cors('administrator')
+def attendance(id):
+
+    empid = request.form.get("employee_id")
+    workdays = request.form.get("workdays", type=int)
+    absentdays = request.form.get("absentdays", type=int)
+    leavedays = request.form.get("leavedays", type=int)
+    attendancemonth = request.form.get("attendancemonth")
+
+    user = session.get("username")
+    message = ""
+    try:
+        conn_mysql.consume_results()
+    except: pass
+    if request.method == "POST":
+        sql = '''
+        INSERT INTO attendance (EmployeeID, WorkDays, AbsentDays, LeaveDays, AttendanceMonth, CreatedAt)
+        VALUES (%s, %s, %s, %s, %s, NOW()) 
+
+        '''
         try:
-            mysql_cursor.execute(mysql_query)
-            salary = mysql_cursor.fetchall()
-            for obj in salary:
-                salaries.append(
-                    {
-                        "Salary ID":obj[0],
-                        "Employee ID":obj[1]
-                    }
-                )
-            return render_template("",slr = salaries)
+            with conn_mysql.cursor(dictionary=True,buffered=True) as cursor:
+                cursor.execute(sql,[empid,workdays,absentdays,leavedays,attendancemonth])
+                conn_mysql.commit()
+                message = "Attendance Successfully"
         except Exception as error:
-            message = f"{error}"
             return {
-                "error-message":f"{message}"
-            }
+                "error-message":f"{error}"
+            }           
+    return render_template("attendance.html",EmployeeID=id,usr=user,msg=message)
+
+
+
+    
+
         
 
 # Hiển thị dánh sách phòng ban
 @app.route("/departments",methods=["GET","POST"])
+@arms_decorator_cors('administrator')
 # danh sách phòng ban là không yêu cầu ràng buộc bởi vai trò cụ thể nên ko dùng đến middleware
 def show_departments():
     message = ""
     departments = []
     user = session.get("username")
     try:
-        sql = '''SELECT * FROM departments'''
+        conn_mysql.consume_results()
+    except: 
+        pass
+      
+    try:
+        
+        sql = '''SELECT DISTINCT
+                    
+                    departmentpositions.DepartmentID as departmentID,
+                    departments.DepartmentName as departmentname
+                    
+                FROM departmentpositions
+                INNER JOIN departments ON departments.departmentID = departmentpositions.DepartmentID'''
         #tùy chỉnh 1 trong 2 CSDL 
-        mysql_cursor.execute(sql)
-        department = mysql_cursor.fetchall()
-        for obj in department:
-            departments.append(
-                {
-                    "ID":obj[0],
-                    "Department":obj[1],
-                }
-            )
-        return render_template("",usr = user,message = message, department = department)
+        with conn_mysql.cursor(dictionary=True,buffered=True) as mysql_cursor:
+            mysql_cursor.execute(sql)
+            result = mysql_cursor.fetchall()
+            for obj in result:
+                departments.append(
+                    {
+                        
+                        "DepartmentID":obj["departmentID"],
+                        "DepartmentName":obj["departmentname"]
+                    }
+                )
+        return render_template("departments.html"
+                            ,usr = user,message = message, department = departments)
     except Exception as error:
         return {
             "error-message":f"{error}"
         }      
         
+
+
+
+@app.route('/positions/<int:id>',methods=["GET","POST"])
+@arms_decorator_cors('administrator')
+def show_positions(id):
+    positions = []
+    user = session.get("username")
+    try:
+        conn_mysql.consume_results()
+    except : pass
+
+    if request.method == "POST":
+        sql = '''
+        
+        SELECT DISTINCT
+            
+            departmentpositions.PositionID as PositionID,
+            Positions.PositionName as PositionName
+        FROM departmentpositions
+        INNER JOIN Positions ON Positions.PositionID = departmentpositions.PositionID
+        WHERE departmentpositions.DepartmentID = %s
+        
+
+        '''
+        try:
+            with conn_mysql.cursor(dictionary=True,buffered=True) as mysql_cursor:
+                mysql_cursor.execute(sql,[id])
+                result = mysql_cursor.fetchall()
+                for obj in result:
+                    positions.append(
+                        {
+                            "PositionID":obj["PositionID"],
+                            "PositionName":obj["PositionName"]
+                        }
+                    )
+            return render_template("position.html",usr=user,positions=positions)
+        except Exception as error:
+            return {
+                "error-message":f"{error}"
+            }
+    else:
+        sql = '''
+        
+        SELECT DISTINCT
+            
+            departmentpositions.PositionID as PositionID,
+            Positions.PositionName as PositionName
+        FROM departmentpositions
+        INNER JOIN Positions ON Positions.PositionID = departmentpositions.PositionID
+        WHERE departmentpositions.DepartmentID = %s
+        
+
+        '''
+        try:
+            with conn_mysql.cursor(dictionary=True,buffered=True) as mysql_cursor:
+                mysql_cursor.execute(sql,[id])
+                result = mysql_cursor.fetchall()
+                for obj in result:
+                    positions.append(
+                        {
+                            "PositionID":obj["PositionID"],
+                            "PositionName":obj["PositionName"]
+                        }
+                    )
+            return render_template("position.html",usr=user,positions=positions)
+        except Exception as error:
+            return {
+                "error-message":f"{error}"
+            }
+
+
+            
 
 # hiển thị danh sách tài khoản ban quản trị - administrator
 @app.route('/rights',methods = ["GET","POST"])
@@ -781,33 +1246,50 @@ def show_departments():
 def permission_rights():
     message = ""
     accounts = []
-    mysql_query = '''SELECT * FROM accounts'''
-    mysql_cursor.execute(mysql_query)
-    mysql_accounts = mysql_cursor.fetchall()
-    
-    # chưa dùng tới
-    sqlserver_query = '''SELECT * FROM accounts'''
-    server_cursor.execute(sqlserver_query)
-    sqlserver_accounts = server_cursor.fetchall()
-    for obj in mysql_accounts:
-
-        accounts.append(
-            {
-                "userID": obj[0],
-                "Username": obj[1],
-                "Email":obj[3],
-                "Role":obj[4]
-            }
-        )
-        
     user = session.get("username")
+
+    # chưa dùng tới
+    # sqlserver_query = '''SELECT * FROM accounts'''
+    # server_cursor.execute(sqlserver_query)
+    # sqlserver_accounts = server_cursor.fetchall()
+    try:
+        conn_mysql.consume_results()
+    except:
+        pass
+
+    with conn_mysql.cursor(buffered=True) as mysql_cursor:
+        mysql_query = '''SELECT * FROM accounts'''
+        mysql_cursor.execute(mysql_query)
+        mysql_accounts = mysql_cursor.fetchall()
+        
+    
+        for obj in mysql_accounts:
+
+            accounts.append(
+                {
+                    "userID": obj[0],
+                    "Username": obj[1],
+                    "Email":obj[3],
+                    "Role":obj[4]
+                }
+            )
+        
+    
     return render_template("rights&role.html",usr = user,account = accounts)
+
+
+
+
+
+
 
 #Tìm kiếm tài khoản thuộc ban quản trị 
 @app.route('/rolesearch',methods = ['GET','POST'])
 @arms_decorator_cors("administrator")
 def accounts_search():
+    mysql_cursor = conn_mysql.cursor()
     accounts = []
+    user = session.get("username")
     params = request.form.get("searchfield")
     sql = '''
     SELECT * FROM accounts
@@ -833,12 +1315,14 @@ def accounts_search():
                 )
                 
             
-            user = session.get("username")
+            
             return render_template("rights&role.html",usr = user,account = accounts)
     except Exception as error:
         return {
             "error-message":f"{error}"
         }
+    return render_template("rights&role.html",usr = user,account = accounts)
+
     
 
 
@@ -861,39 +1345,47 @@ def edit_rights(id):
     # xác định người dùng hiện tại qua session lữu trữ
     user = session.get('username')
     message = ""
-    converted_sqlcursor = conn_mysql.cursor(dictionary=True)
-    
+    try:
+        conn_mysql.consume_results()
+    except:
+        pass
     if request.method == "POST":
         form_request_id = request.form.get("user_id")
         form_request_role= request.form.get("role")
         
 
         try:
+
+            
             sql_sv_query = '''
                 UPDATE accounts SET role = ? 
                 WHERE user_id = ?
             '''
 
-            sql_query = '''UPDATE accounts SET role = %s 
+            with conn_mysql.cursor(buffered=True,dictionary=True) as mysql_curssor:
+                sql_query = '''UPDATE accounts SET role = %s 
                         WHERE user_id = %s'''
-            converted_sqlcursor.execute(sql_query,[form_request_role,form_request_id])
-            conn_mysql.commit()
+                mysql_curssor.execute(sql_query,[form_request_role,form_request_id])
+                conn_mysql.commit()
+                
+            with conn_mysql.cursor(buffered=True,dictionary=True) as mysql_curssor:
+                mysql_query = '''SELECT * FROM accounts WHERE user_id = %s'''
+                mysql_curssor.execute(mysql_query, [form_request_id])
+                data = mysql_curssor.fetchone()
 
-            server_cursor.execute(sql_sv_query,(form_request_role,form_request_id,))    
-            server_cursor.connection.commit()
+                accounts = {
+                    "userID": data["user_id"],
+                    "username": data["username"],
+                    "Email": data["email"],
+                    "role": data["role"]
+                }
+            
 
 
             # Truy vấn lại thông tin account để render template
-            mysql_query = '''SELECT * FROM accounts WHERE user_id = %s'''
-            converted_sqlcursor.execute(mysql_query, [form_request_id])
-            data = converted_sqlcursor.fetchone()
-
-            accounts = {
-                "userID": data["user_id"],
-                "username": data["username"],
-                "Email": data["email"],
-                "role": data["role"]
-            }
+            
+            server_cursor.execute(sql_sv_query,(form_request_role,form_request_id,))    
+            server_cursor.connection.commit()
 
             message = "Updated rights & permissions successfully"
             return render_template("permissionedit.html",msg = message,usr=user,account=accounts)
@@ -904,34 +1396,37 @@ def edit_rights(id):
 
        
         
-    try:
-        message = ""
-        mysql_query = '''SELECT * FROM accounts
-                        WHERE user_id = %s
+    else:
+        try:
+            message = ""
+            mysql_query = '''SELECT * FROM accounts
+                            WHERE user_id = %s
+                        '''
+            sql_query = '''SELECT * FROM accounts
+                            WHERE user_id = ?
                     '''
-        sql_query = '''SELECT * FROM accounts
-                        WHERE user_id = ?
-                '''
-        # lệnh truy vấn vào MySQL
-        converted_sqlcursor.execute(mysql_query,[id])
-        data = converted_sqlcursor.fetchone()
-        
-        # lệnh  truy vấn vào SQL server
-        server_cursor.execute(sql_query,(id,))
-        server_cursor.fetchone()
+            # lệnh truy vấn vào MySQL
+            with conn_mysql.cursor(buffered=True,dictionary=True) as mysql_curssor:
+                mysql_curssor.execute(mysql_query,[id])
+                data = mysql_curssor.fetchone()
+                accounts = {
+                        "userID":data["user_id"],
+                        "username":data["username"],
+                        "Email":data["email"],
+                        "role":data["role"]
+                    }
+            
+            # lệnh  truy vấn vào SQL server
+            server_cursor.execute(sql_query,(id,))
+            server_cursor.fetchone()
 
-        accounts = {
-                "userID":data["user_id"],
-                "username":data["username"],
-                "Email":data["email"],
-                "role":data["role"]
-            }
-        return render_template("permissionedit.html",msg = message,usr=user, account = accounts)
-    except Exception as error:
-        return {
-            "error-message":f"{error}"
-        },408
-        
+            
+            return render_template("permissionedit.html",msg = message,usr=user, account = accounts)
+        except Exception as error:
+            return {
+                "error-message":f"{error}"
+            },408
+            
 
    
 @app.route("/delete/account<int:id>", methods = ["GET","POST"])

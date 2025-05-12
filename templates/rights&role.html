@@ -31,7 +31,10 @@
                                     <a style="color: grey;" href="{{url_for('dashboard')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Human</span></a>
                                 </li>
                                 <li>
-                                    <a style="color: grey;" href="#"  class="nav-link px-0"> <span class="d-none d-sm-inline">Payroll</span> </a>
+                                    <a style="color: grey;" href="{{url_for('show_departments')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Departments</span> </a>
+                                </li>
+                                <li>
+                                    <a style="color: grey;" href="{{ url_for('payroll') }}" class="nav-link px-0"> <span class="d-none d-sm-inline">Payroll</span> </a>
                                 </li>
                                 <li>
                                     <a style="color: grey;" href="{{url_for('permission_rights')}}"  class="nav-link px-0"> <span class="d-none d-sm-inline">Rights & Permission</span> </a>
@@ -42,40 +45,7 @@
                             <a href="{{url_for('management')}}" class="nav-link px-0 align-middle">
                                 <i class="fs-4 bi-table"></i> <span class="ms-1 d-none d-sm-inline">Manage</span></a>
                         </li>
-                        <li>
-                            <a href="#submenu2" data-bs-toggle="collapse" class="nav-link px-0 align-middle ">
-                                <i class="fs-4 bi-bootstrap"></i> <span class="ms-1 d-none d-sm-inline">Bootstrap</span></a>
-                            <ul class="collapse nav flex-column ms-1" id="submenu2" data-bs-parent="#menu">
-                                <li class="w-100">
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Item</span> 1</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Item</span> 2</a>
-                                </li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#submenu3" data-bs-toggle="collapse" class="nav-link px-0 align-middle">
-                                <i class="fs-4 bi-grid"></i> <span class="ms-1 d-none d-sm-inline">Products</span> </a>
-                                <ul class="collapse nav flex-column ms-1" id="submenu3" data-bs-parent="#menu">
-                                <li class="w-100">
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 1</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 2</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 3</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="nav-link px-0"> <span class="d-none d-sm-inline">Product</span> 4</a>
-                                </li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#" class="nav-link px-0 align-middle">
-                                <i class="fs-4 bi-people"></i> <span class="ms-1 d-none d-sm-inline">Customers</span> </a>
-                        </li>
+                        
                     </ul>
                     <hr>
                     <div class="dropdown pb-4">
@@ -125,7 +95,7 @@
                     <tbody>
                         {% for obj in account %}
                         <tr>
-                            <form method="POST" action="{{ url_for('delete_accounts', id = obj.userID) }}">
+                            <form method="POST" action="{{ url_for('permission_rights') }}">
                                 <td >{{ obj.userID }}</td>
                                 <td >{{ obj.Username }}</td>
                                 <td >{{ obj.Email }}</td>
@@ -133,14 +103,12 @@
                                
                                 <td>
                                     <div class="custom-btn">
-                                        <button type="submit" class="btn btn-primary" id="save-detail-btn">
-                                            <a style="text-decoration: none; color: white;" href="{{url_for('edit_rights', id = obj.userID)}}">Edit</a>
+                                        <button type="submit" style="background-color: red; border-color: red;" class="btn btn-primary" id="save-detail-btn">
+                                            <a href="{{ url_for('edit_rights', id = obj.userID) }}">Edit</a>
                                         </button>
     
                                         <button type="submit" style="background-color: red; border-color: red;" class="btn btn-primary" id="save-detail-btn">
-                                            <a style="text-decoration: none; color: white; background-color: red;
-                                            " 
-                                            >Delete</a>
+                                            Delete
                                         </button>
                                     </div>
                                 </td>

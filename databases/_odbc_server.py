@@ -80,6 +80,7 @@ def create_middle_department_pos():
         )
         '''
         cursor.execute(sql)
+        conn.commit()
         return "DeparmentPositions has established"
     except pyodbc.Error as err:
         return f"{err}"
@@ -98,7 +99,16 @@ def create_middle_employees_dp_pos():
             )
         '''
         cursor.execute(sql)
+        cursor.connection.commit()
         return "Table Employee has established"
+    except pyodbc.Error as err:
+        return f"{err}"
+def truncate_emp():
+    sql = '''TRUNCATE TABLE employees'''
+    try:
+        cursor.execute(sql)
+        cursor.connection.commit()
+        return "Clear records of employees"
     except pyodbc.Error as err:
         return f"{err}"
 
@@ -115,4 +125,5 @@ if __name__ == "__main__":
     # print(check_accounts())
     print(create_middle_department_pos())
     print(create_middle_employees_dp_pos())
-    
+    # print(truncate_emp())
+
