@@ -187,13 +187,11 @@
                             <div class="alert alert-info" role="alert">
                                 <i class="bi bi-graph-up-arrow me-2"></i>
                                 <strong>Salary discrepancies detected:</strong>
+                                
                                 <ul class="mt-2 mb-0">
-                                    {% for discrepancy in salary_discrepancies %}
-                                        <li>{{ discrepancy.name }} (ID: {{ discrepancy.id }}) – Difference: {{ discrepancy.amount }}</li>
-                                    {% else %}
-                                        <li>No discrepancies detected</li>
-                                    {% endfor %}
+                                    <li>Employee.ID {{ largest_indexes_emp }} - {{ largest_index_slr }}</li>
                                 </ul>
+                                
                             </div>
                         </div>
 

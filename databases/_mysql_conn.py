@@ -155,7 +155,7 @@ def create_middle_department_pos():
     try:
         sql = '''
         CREATE TABLE DepartmentPositions (
-            ID INT PRIMARY KEY IDENTITY,
+            ID INT PRIMARY KEY AUTO_INCREMENT,
             DepartmentID INT NOT NULL,
             PositionID INT NOT NULL,
             FOREIGN KEY (DepartmentID) REFERENCES departments(DepartmentID),
@@ -170,7 +170,7 @@ def create_middle_employees_dp_pos():
     try:
         sql = '''
             CREATE TABLE employeetotallist  (
-                ID INT IDENTITY PRIMARY KEY ,
+                ID INT AUTO_INCREMENT PRIMARY KEY ,
                 EmployeeID INT NOT NULL,
                 DepartmentID INT NOT NULL,
                 PositionID INT NOT NULL,
@@ -191,7 +191,29 @@ def truncate_emp():
         return "Clear records of employees"
     except Exception as err:
         return f"{err}"
-
+    
+def salary_index_difference():
+    sql = '''
+    CREATE TABLE salaries_index (
+        index_id INT AUTO_INCREMENT PRIMARY KEY,
+        SalaryID INT NOT NULL,
+        EmployeeID INT NOT NULL,
+        Salaryindex DECIMAL(12,2),
+        FOREIGN KEY (SalaryID) REFERENCES salaries(SalaryID),
+        FOREIGN KEY (EmployeeID) REFERENCES employees (EmployeeID)
+        
+    
+    )
+    '''
+    try:
+        cursor.execute(sql)
+        return "Salaries index review & built"
+    except Exception as error:
+        return f"{error}"
+def create_staff_linked_profile():
+    sql = '''
+    
+    '''
 # chạy các hàm ở dưới
 if __name__ == '__main__':
     print(check_connection())
@@ -202,4 +224,5 @@ if __name__ == '__main__':
     # print(check_accounts())
     # print(create_middle_department_pos())
     # print(create_middle_employees_dp_pos())
-    print(truncate_emp())
+    # print(truncate_emp())
+    print(salary_index_difference())

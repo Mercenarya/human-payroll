@@ -14,6 +14,12 @@ import datetime
 import mysql.connector
 import pyodbc
 import jwt
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.message import EmailMessage
+
+
 #tạo kết nối CSDL đến SQL server thông qua pyodbc
 server = 'LAPTOP-OOTVABFJ\\SQLEXPRESS'
 database = 'HUMAN'
@@ -112,19 +118,21 @@ def arms_decorator_cors(*role):
     return decorate
 
 
-
 def token_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization')
+        auth_header = request.headers.get('Authorization')
 
-        if not token:
+        if not auth_header:
             return jsonify({'message': 'Token is missing!'}), 403
 
         try:
-            # Giải mã token và lấy thông tin
+            # Tách phần "Bearer <token>"
+            token = auth_header.split(" ")[1]
             decoded_token = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
             current_user = decoded_token['user_id']
+        except IndexError:
+            return jsonify({'message': 'Token format is invalid!'}), 403
         except jwt.ExpiredSignatureError:
             return jsonify({'message': 'Token has expired!'}), 403
         except jwt.InvalidTokenError:
@@ -133,6 +141,7 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
 
     return decorated_function
+
 
 # Ví dụ endpoint bảo vệ
 @app.route('/profile', methods=['GET'])
@@ -186,6 +195,8 @@ def json_progoluge():
 def home():
     today = datetime.datetime.today()
     max_leave_day = 0
+    largest_indexs = 0
+    largest_indexes_emp = ""
     anni_list = []
     user = session.get("username")
     try:
@@ -207,6 +218,21 @@ def home():
 
         anni_emp = '''
         SELECT EmployeeID, HireDate FROM Employees
+        '''
+
+        index_salary_qry = '''
+        SELECT 
+            EmployeeID,
+            MAX(Salaryindex) AS CurrentIndex,
+            MAX(Salaryindex) - MIN(Salaryindex) AS Difference
+        FROM (
+            SELECT EmployeeID, Salaryindex
+            FROM nemo.salaries_index
+            ORDER BY SalaryID DESC
+        ) AS recent
+        GROUP BY EmployeeID
+        HAVING Difference > 5000000;
+
         '''
 
         server_cursor.execute(total_sql_emp)
@@ -247,13 +273,23 @@ def home():
 
             cursor.execute(highest_slr)
             highest_slr_getdata = cursor.fetchone()['max_slr']
-
+            
+            
             cursor.execute(max_leave)
             max_leave_emp = cursor.fetchone()
-            if max_leave_emp:
-                max_leave_day = cursor.fetchone()["max_leave"]
-            else:
-                max_leave_day = 0
+
+
+            cursor.execute(index_salary_qry)
+            largest_index = cursor.fetchone()
+
+            if max_leave_emp :
+                max_leave_day = max_leave_emp["max_leave"]
+                
+
+            if largest_index:
+                largest_indexs = largest_index['Difference']
+                largest_indexes_emp = largest_index["EmployeeID"]
+
         
         return render_template('home.html',
                                usr = user,
@@ -264,7 +300,9 @@ def home():
                             total_slr=total_slr,
                             highest_SR=highest_slr_getdata,
                             max_leave_day = max_leave_day,
-                            anni_list=anni_list)
+                            anni_list=anni_list,
+                            largest_index_slr=largest_indexs,
+                            largest_indexes_emp=largest_indexes_emp)
 
 
     except Exception as error:
@@ -407,29 +445,26 @@ def user_session():
 @arms_decorator_cors('staff')
 @app.route("/staff",methods=["GET","POST"])
 def staff():
-    
+    id = session.get("id")
     user = session.get("user")
     emp_sv_query = '''
-                SELECT 
-                    Employees.EmployeeID,
-                    Employees.Fullname,
-                    Employees.DateOfBirth,
-                    Employees.Gender,
-                    Employees.Phonenumber,
-                    Employees.Email,
-                    Employees.DepartmentID,
-                    Departments.DepartmentName as departmentname,
-                    Employees.PositionID,
-                    Positions.PositionName as positionname,
-                    Employees.HireDate
-                FROM Employees
-                INNER JOIN Departments ON Departments.DepartmentID = Employees.DepartmentID
-                INNER JOIN Positions ON Positions.PositionID = Employees.PositionID
-                WHERE Employees.EmployeeID = ?'''
-        
+        SELECT 
+            accounts.EmployeeID,
+            Employees.Fullname,
+            Employees.DateOfBirth,
+            Employees.Gender,
+            Employees.Phonenumber,
+            Employees.Email,
+            Employees.DepartmentID,
+            Employees.HireDate
+        FROM Employees
+        INNER JOIN Employees ON Employees.EmployeeID = accounts.EmployeeID
+        WHERE accounts.user_id = ?'''
+    
     server_cursor.execute(emp_sv_query,(id,))
     employees = server_cursor.fetchone()
-    return render_template("staff.html",ur=user)
+    
+    return render_template("staff.html",emp=employees,usr=user)
 
 
 @login_required
@@ -766,6 +801,8 @@ def dashboard():
 '''
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
 @arms_decorator_cors('administrator')
+@arms_decorator_cors('payroll manager')
+@arms_decorator_cors('hr manager')
 def edit_employees(id):
     user = session.get("username")
     role = session.get("role")  # 'Administrator', 'HR Manager', 'Payroll Manager'
@@ -798,7 +835,7 @@ def edit_employees(id):
 
         try:
             # --- HR Manager or Administrator: Update HR info ---
-            if role in ["HR", "Administrator"]:
+            if role in ["hr manager", "administrator"]:
                 emp_sql_query = '''
                     UPDATE employees SET
                         Fullname = ?, DateOfBirth = ?, Gender = ?,
@@ -825,16 +862,46 @@ def edit_employees(id):
                         conn_mysql.commit()
 
             # --- Payroll Manager or Administrator: Update payroll info ---
-            if role in ["Payroll Manager", "Administrator"]:
+            if role in ["payroll manager", "administrator"]:
                 salary_update_qry = '''
                     UPDATE salaries SET
-                        Bonus = %s, Deduction = %s,
-                        BaseSalary = %s, NetSalary = %s, MonthSalary = %s
+                        Bonus = %s, Deductions = %s,
+                        BaseSalary = %s, NetSalary = %s, SalaryMonth = %s
                     WHERE EmployeeID = %s
                 '''
+                
+                check_salary_id = '''
+                SELECT SalaryID FROM salaries WHERE EmployeeID = %s
+                '''
+
+
+                salary_index_qry = '''
+                INSERT INTO salaries_index (SalaryID,EmployeeID,Salaryindex)
+                VALUES (%s,%s,%s)
+                '''
+
+                
+                
+
                 with conn_mysql.cursor(dictionary=True, buffered=True) as cursor:
                     cursor.execute(salary_update_qry, [bonus, deduction, basesalaries, netsalaries, monthsalary, empid])
                     conn_mysql.commit()
+
+                with conn_mysql.cursor(dictionary=True, buffered=True) as cursor:
+                    cursor.execute(check_salary_id,[empid])
+                    slryID = cursor.fetchone()
+                    if slryID:
+                        slry_id = slryID["SalaryID"]
+                        cursor.execute(salary_index_qry,[slry_id,empid,netsalaries])
+                    
+                    else:
+                        message = f"Salary ID {slryID} is invalid"
+                    conn_mysql.commit()
+                # with conn_mysql.cursor(dictionary=True,buffered=True) as q_cursor:
+            else:
+                return {
+                    "error":"role denied"
+                },403
 
             # Lấy lại thông tin sau khi cập nhật
             emp_sv_query = '''
@@ -1470,8 +1537,17 @@ def delete_accounts(id):
         
     return render_template("rights&role.html",msg=message,usr=user)
             
+@app.route("/email/<int:id>",methods=["GET","POST"])
+@arms_decorator_cors('Payroll Manager')
+@arms_decorator_cors('administrator')
+def send_payroll_email(id):
+    hr_email = "mtranquoc77@gmail.com"
+    target = ""
+    user = session.get("username")
+    template = '''
         
-
+    '''
+    
     
 # Đăng xuất tài khoản
 @app.route('/logout',methods = ['GET','POST'])
