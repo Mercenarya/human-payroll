@@ -10,10 +10,12 @@ from flask_session import Session
 from flask_login import LoginManager, session_protected,UserMixin,login_required,logout_user,current_user, login_user
 import re
 import datetime
+import time
 # import config
 import mysql.connector
 import pyodbc
 import jwt
+
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -1537,16 +1539,167 @@ def delete_accounts(id):
         
     return render_template("rights&role.html",msg=message,usr=user)
             
-@app.route("/email/<int:id>",methods=["GET","POST"])
+@app.route("/email/<int:id>", methods=["GET", "POST"])
 @arms_decorator_cors('Payroll Manager')
 @arms_decorator_cors('administrator')
 def send_payroll_email(id):
-    hr_email = "mtranquoc77@gmail.com"
-    target = ""
+    message = ""
     user = session.get("username")
-    template = '''
+    hr_email = "mtranquoc77@gmail.com"
+    hr_password = "hxursqpuhpimjwlr"
+    emp_email = ""
+    try:
+        conn_mysql.consume_results()
+    except:
+        pass
+
+    if request.method == "POST":
+        try:
+            greet = "Greeting"
+            
+
+            
+            sql = "SELECT * FROM salaries WHERE EmployeeID = %s"
+            with conn_mysql.cursor(dictionary=True, buffered=True) as cursor:
+                cursor.execute(sql, [id])
+                notice_data = cursor.fetchone()
+
+            
+            email_emp = "SELECT Email FROM Employees WHERE EmployeeID = ?"
+            server_cursor.execute(email_emp, (id,))
+            email_data = server_cursor.fetchone()
+
+            if not notice_data or not email_data:
+                message = "Invalid Email"
+                return render_template("emailSend.html", msg=message, usr=user)
+
+            email = email_data[0]
+            base_salary = notice_data['BaseSalary']
+            month_salary = notice_data['SalaryMonth']
+            net_salary = notice_data['NetSalary']
+            deduction = notice_data['Deductions']
+
+            msg = MIMEMultipart('alternative')
+            msg["Subject"] = "Monthly Payroll Notice"
+            msg["From"] = hr_email
+            msg["To"] = email
+
+            template = f'''
+                <html>
+                <head></head>
+                <body>
+                    <h2>📢 Official Monthly Salary Notification</h2>
+                    <p>Hello,</p>
+                    <p>This is your official salary information for the month:</p>
+                    <ul>
+                        <li><strong>Month:</strong> {month_salary}</li>
+                        <li><strong>Base Salary:</strong> VND {base_salary}</li>
+                        <li><strong>Deductions:</strong> VND {deduction}</li>
+                        <li><strong>Net Salary:</strong> <b style="color: green;">VND {net_salary}</b></li>
+                    </ul>
+                    <p>For more details, please contact HR.</p>
+                    <p>Thank you.</p>
+                </body>
+                </html>
+            '''
+
+            # Gửi email
+            part1 = MIMEText(greet, 'plain')
+            part2 = MIMEText(template, 'html')
+            msg.attach(part1)
+            msg.attach(part2)
+            print("Attach mail...")
+            time.sleep(3)
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(hr_email, hr_password)
+            print(f"Wrapping content and Sending to {email} ...")
+            time.sleep(3)
+            server.sendmail(hr_email, email, msg.as_string())
+            server.quit()
+
+            message = "📧 Email sent !"
+            return render_template("emailSend.html",
+                                empid=id,
+                                msg=message,
+                                hr_email=hr_email,
+                                emp_email = email,
+                                content = template, usr=user)
+
+        except Exception as error:
+            
+            return {"error-message": f"{error}"}
+    else:
+        greet = "Greeting"
+        sql = "SELECT * FROM salaries WHERE EmployeeID = %s"
+        with conn_mysql.cursor(dictionary=True, buffered=True) as cursor:
+            cursor.execute(sql, [id])
+            notice_data = cursor.fetchone()
+
         
-    '''
+        email_emp = "SELECT Email FROM Employees WHERE EmployeeID = ?"
+        server_cursor.execute(email_emp, (id,))
+        email_data = server_cursor.fetchone()
+
+        if not notice_data or not email_data:
+            message = "Invalid Email"
+            return render_template("emailSend.html",empid=id, msg=message, usr=user)
+
+        email = email_data[0]
+        base_salary = notice_data['BaseSalary']
+        month_salary = notice_data['SalaryMonth']
+        net_salary = notice_data['NetSalary']
+        deduction = notice_data['Deductions']
+
+        msg = MIMEMultipart('alternative')
+        msg["Subject"] = "Monthly Payroll Notice"
+        msg["From"] = hr_email
+        msg["To"] = email
+
+        template = f'''
+            <html>
+            <head></head>
+            <body>
+                <h2>📢 Official Monthly Salary Notification</h2>
+                <p>Hello,</p>
+                <p>This is your official salary information for the month:</p>
+                <ul>
+                    <li><strong>Month:</strong> {month_salary}</li>
+                    <li><strong>Base Salary:</strong> VND {base_salary}</li>
+                    <li><strong>Deductions:</strong> VND {deduction}</li>
+                    <li><strong>Net Salary:</strong> <b style="color: green;">VND {net_salary}</b></li>
+                </ul>
+                <p>For more details, please contact HR.</p>
+                <p>Thank you.</p>
+            </body>
+            </html>
+        '''
+
+        # Gửi email
+        part1 = MIMEText(greet, 'plain')
+        part2 = MIMEText(template, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+        print("Attach mail...")
+        time.sleep(3)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(hr_email, hr_password)
+        print(f"Wrapping content and Sending to {email} ...")
+        time.sleep(3)
+        server.sendmail(hr_email, email, msg.as_string())
+        server.quit()
+
+        message = "📧 Email sent !"
+        return render_template("emailSend.html",empid=id, msg=message,
+                            hr_email=hr_email,
+                            emp_email = email,
+                            content = template, usr=user)
+
+
+        
+
+   
     
     
 # Đăng xuất tài khoản
