@@ -205,7 +205,12 @@
      
         
     </div>
-    <script lang="text/javascript" src="{{ url_for('static', filename = 'src/salary.js')}}"></script>
+    <script lang="text/javascript" src="{{ url_for('static', filename = 'src/salary.js')}}">
+         function logout() {
+            fetch("/logout", {method: "POST"})
+                .then(() => window.location.href = "/login");
+        }
+    </script>
     
 </body>
 </html>

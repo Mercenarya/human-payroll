@@ -193,7 +193,7 @@ def json_progoluge():
 
 # Home page
 @login_required
-@app.route('/')
+@app.route('/home')
 def home():
     today = datetime.datetime.today()
     max_leave_day = 0
@@ -314,7 +314,7 @@ def home():
     
 
 # trang đăng nhập
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def login():
     message = ""
     session.clear()
@@ -353,6 +353,40 @@ def login():
                 message = "Sign in Successfully"
                 
                 # Trả về giao diện chính kèm token nếu cần
+                if session.get('role') == 'staff':
+                    try:
+                        conn_mysql.consume_results()
+                    except:
+                        pass
+
+                    id = session.get("id")  # Lấy id từ session hiện tại
+                    user = session.get("username")
+
+                    if not user:
+                        return "No matched session", 403
+
+                    emp_sv_query = '''
+                        SELECT 
+                            a.EmployeeID as empID,
+                            e.Fullname as fullname,
+                            e.DateOfBirth as birth,
+                            e.Gender as gender,
+                            e.Phonenumber as phone,
+                            e.Email as mail,
+                            e.DepartmentID as dp,
+                            e.HireDate as hiredate
+                        FROM accounts a
+                        INNER JOIN Employees e ON e.EmployeeID = a.EmployeeID
+                        WHERE a.username = ?
+                    '''
+
+                    server_cursor.execute(emp_sv_query, (user,))
+                    employees = server_cursor.fetchone()
+
+                    if not employees:
+                        return "Invalid account", 404
+
+                    return render_template("staff.html", sessionid=id, emp=employees, usr=user)
                 return render_template("home.html", usr=account[0], token=token)
             else:
                 message = "Sorry, this account is invalid"
@@ -381,6 +415,7 @@ def register():
             rppassword = request.form.get('rp-password')
             email = request.form.get('email')
             phone = request.form.get('phonenumber')
+            empID = request.form.get("empid")
             # kiểm tra yêu cầu @gmail.com cần thêm vào dữ liệu đầu vào
             matches = re.search('@gmail.com',email)
             
@@ -408,15 +443,15 @@ def register():
                 message = "Phone is required"
             else:
                 my_sql = '''
-                INSERT INTO accounts (username,password,email,role)
-                VALUES (%s,%s,%s,%s)
+                INSERT INTO accounts (username,password,email,role,EmployeeID)
+                VALUES (%s,%s,%s,%s,%s)
                 '''
                 sql_server = '''
-                INSERT INTO accounts (username,password,email,role)
-                VALUES (?,?,?,?)
+                INSERT INTO accounts (username,password,email,role,EmployeeID)
+                VALUES (?,?,?,?,?)
                 '''
-                mysql_cursor.execute(my_sql,[username,password,email,"not assign"])
-                server_cursor.execute(sql_server,[username,password,email,"not assign"])
+                mysql_cursor.execute(my_sql,[username,password,email,"not assign",empID])
+                server_cursor.execute(sql_server,[username,password,email,"not assign",empID])
 
                 conn_mysql.commit()
                 server_cursor.connection.commit()
@@ -444,29 +479,43 @@ def user_session():
 
 
 @login_required
+@app.route("/staff", methods=["GET", "POST"])
 @arms_decorator_cors('staff')
-@app.route("/staff",methods=["GET","POST"])
 def staff():
-    id = session.get("id")
-    user = session.get("user")
+    try:
+        conn_mysql.consume_results()
+    except:
+        pass
+
+    id = session.get("id")  # Lấy id từ session hiện tại
+    user = session.get("username")
+
+    if not user:
+        return "Không có session hợp lệ", 403
+
     emp_sv_query = '''
         SELECT 
-            accounts.EmployeeID,
-            Employees.Fullname,
-            Employees.DateOfBirth,
-            Employees.Gender,
-            Employees.Phonenumber,
-            Employees.Email,
-            Employees.DepartmentID,
-            Employees.HireDate
-        FROM Employees
-        INNER JOIN Employees ON Employees.EmployeeID = accounts.EmployeeID
-        WHERE accounts.user_id = ?'''
-    
-    server_cursor.execute(emp_sv_query,(id,))
+            a.EmployeeID as empID,
+            e.Fullname as fullname,
+            e.DateOfBirth as birth,
+            e.Gender as gender,
+            e.Phonenumber as phone,
+            e.Email as mail,
+            e.DepartmentID as dp,
+            e.HireDate as hiredate
+        FROM accounts a
+        INNER JOIN Employees e ON e.EmployeeID = a.EmployeeID
+        WHERE a.username = ?
+    '''
+
+    server_cursor.execute(emp_sv_query, (user,))
     employees = server_cursor.fetchone()
-    
-    return render_template("staff.html",emp=employees,usr=user)
+
+    if not employees:
+        return "Invalid account", 404
+
+    return render_template("staff.html", sessionid=id, emp=employees, usr=user)
+
 
 
 @login_required
@@ -971,14 +1020,14 @@ def edit_employees(id):
 def delete_employees(id):
     if request.method == "GET":
         message = ""
-        check_records  = '''SELECT * FROM employees
+        check_records  = '''SELECT * FROM employeetotallist
                         WHERE EmployeeID = %s'''
-        check_records_server  = '''SELECT * FROM Employees
+        check_records_server  = '''SELECT * FROM employeetotallist
                         WHERE EmployeeID = ?'''
 
-        dlt_emp_query = '''DELETE FROM employees
+        dlt_emp_query = '''DELETE FROM employeetotallist
                         WHERE EmployeeID = %s'''
-        server_rm_query = '''DELETE FROM Employees
+        server_rm_query = '''DELETE FROM employeetotallist
                         WHERE EmployeeID = ?'''
         user = session.get("username")
         

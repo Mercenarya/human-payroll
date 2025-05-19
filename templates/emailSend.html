@@ -76,6 +76,13 @@
     </div>
 
     <!-- Optional custom JS -->
-    <script src="{{ url_for('static', filename = 'src/permission.js')}}"></script>
+    <script src="{{ url_for('static', filename = 'src/permission.js')}}">
+        
+        function logout() {
+            fetch("/logout", {method: "POST"})
+                .then(() => window.location.href = "/login");
+        }
+
+    </script>
 </body>
 </html>
